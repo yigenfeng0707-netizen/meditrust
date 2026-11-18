@@ -77,7 +77,7 @@ def test_migration_schema_reusable_by_app_engine():
             from app.models import User
 
             conn.execute(insert(User).values(
-                name="迁移冒烟", age=30, gender="女", city="温州",
+                name="迁移冒烟", age=30, gender="女", city="北京",
                 insurance_type="职工医保", employee_status="在职", role="member"))
             row = conn.execute(
                 __import__("sqlalchemy").text(

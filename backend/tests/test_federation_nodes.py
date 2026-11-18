@@ -49,7 +49,7 @@ async def client(monkeypatch):
     async with session_factory() as session:
         session.add(User(id=1, name="运营员", age=35, gender="女", city="杭州",
                          insurance_type="职工医保", employee_status="在职", role="operator"))
-        session.add(User(id=2, name="普通用户", age=40, gender="男", city="温州",
+        session.add(User(id=2, name="普通用户", age=40, gender="男", city="北京",
                          insurance_type="职工医保", employee_status="在职", role="member"))
         await session.commit()
 

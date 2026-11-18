@@ -24,7 +24,7 @@ HOSPITALS = {
     "A_三甲医院": dict(n=4200, age_mean=71, age_std=11, care_effect=-0.30,
                     lab_noise=0.02, missing_ef=0.05, missing_hba1c=0.05,
                     followup_rate=0.86),
-    "B_县人民医院": dict(n=2400, age_mean=68, age_std=13, care_effect=-0.05,
+    "B_区级医院": dict(n=2400, age_mean=68, age_std=13, care_effect=-0.05,
                      lab_noise=0.06, missing_ef=0.12, missing_hba1c=0.10,
                      followup_rate=0.68),
     "C_社区卫生中心": dict(n=1100, age_mean=64, age_std=15, care_effect=+0.08,

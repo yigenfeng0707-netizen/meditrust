@@ -139,7 +139,7 @@ export default function CancerPage() {
       <motion.div {...fadeIn}>
         <BrandedPageHeader
           title="泛癌卫士 · Oncoformer 泛癌风险评估"
-          description={<>温附医团队 Cell 2026 泛癌模型 × 7 种常见癌种即时/未来风险（当前用户：<span className="font-semibold text-slate-700">{currentUser.name}</span>）</>}
+          description={<>公开发表的 Oncoformer 泛癌模型（Cell 2026） × 7 种常见癌种即时/未来风险（当前用户：<span className="font-semibold text-slate-700">{currentUser.name}</span>）</>}
           badge="真模型推理 × 多模态门控"
           status={<ApiStatusIndicator />}
         />

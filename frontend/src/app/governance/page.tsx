@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * AI 病历治理（瓯医数链 · 数据供给侧）
+ * AI 病历治理（医数可信 · 数据供给侧）
  *
  * 演示动线：粘贴非结构化入院记录 → 一键治理 →
  *  ① PHI 脱敏对比（原文 vs 掩码后，敏感实体高亮）
@@ -24,7 +24,7 @@ import { BrandedPageHeader } from "@/components/branded-page-header";
 import { governNote, type GovernResult } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const SAMPLE_NOTE = `患者张阿姨，65岁，女，因反复胸闷气促3天入院。入院诊断：慢性心力衰竭急性加重，2型糖尿病，高血压3级。血压 158/92mmHg，心率 88次/分。既往高血压病史10年。联系方式 13812345678，身份证 330302196503124421，住院号 ZY2026088。予以呋塞米注射液 40mg 静推，美托洛尔缓释片 23.75mg 口服。`;
+const SAMPLE_NOTE = `患者张阿姨，65岁，女，因反复胸闷气促3天入院。入院诊断：慢性心力衰竭急性加重，2型糖尿病，高血压3级。血压 158/92mmHg，心率 88次/分。既往高血压病史10年。联系方式 13812345678，身份证 110105196503124429，住院号 ZY2026088。予以呋塞米注射液 40mg 静推，美托洛尔缓释片 23.75mg 口服。`;
 
 export default function GovernancePage() {
   const [text, setText] = useState(SAMPLE_NOTE);

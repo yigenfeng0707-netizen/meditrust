@@ -1,4 +1,4 @@
-"""瓯医数链 联邦节点双机演练编排（P1.1/P1.2/P1.3 实操验收）
+"""医数可信 联邦节点双机演练编排（P1.1/P1.2/P1.3 实操验收）
 
 一键完成《联邦节点部署与演练方案》全部演练场景（单机双进程模拟两台
 医院内网机，协议/加密/容错语义与物理双机完全一致；物理双机到位时按
@@ -203,7 +203,7 @@ def gen_certs(ws: Path) -> dict:
     cert_dir.mkdir(exist_ok=True)
     openssl = _find_openssl()
     z = lambda name: str(cert_dir / name)  # noqa: E731
-    subj = "/O=OuMedTrust-Drill/CN={}"
+    subj = "/O=MediTrust-Drill/CN={}"
 
     def run(*cmd: str) -> None:
         subprocess.run((openssl, *cmd), check=True, capture_output=True)

@@ -1,8 +1,8 @@
-"""瓯医数链初赛路演 PPT 生成（python-pptx，16:9）
+"""医数可信初赛路演 PPT 生成（python-pptx，16:9）
 
-基于 docs/BP-瓯医数链-初赛版.md 的内容与 docs/screenshots/ 实测截图。
+基于 docs/BP-医数可信-初赛版.md 的内容与 docs/screenshots/ 实测截图。
 运行：backend/.venv/Scripts/python scripts/generate_bp_pptx.py
-输出：docs/瓯医数链-初赛路演.pptx
+输出：docs/医数可信-初赛路演.pptx
 """
 
 from pathlib import Path
@@ -14,7 +14,7 @@ from pptx.util import Emu, Inches, Pt
 
 ROOT = Path(__file__).resolve().parent.parent
 SHOTS = ROOT / "docs" / "screenshots"
-OUT = ROOT / "docs" / "瓯医数链-初赛路演.pptx"
+OUT = ROOT / "docs" / "医数可信-初赛路演.pptx"
 
 CYAN = RGBColor(0x08, 0x91, 0xB2)
 DARK = RGBColor(0x1E, 0x29, 0x3B)
@@ -88,12 +88,12 @@ def page_no(slide, n):
 s = add_slide()
 rect(s, 0, 0, 13.333, 7.5, DARK)
 rect(s, 0, 5.1, 13.333, 0.06, CYAN)
-text(s, 1.0, 1.7, 11.3, 1.2, "瓯医数链 OuMedTrust", size=54, bold=True, color=WHITE)
+text(s, 1.0, 1.7, 11.3, 1.2, "医数可信 MediTrust", size=54, bold=True, color=WHITE)
 text(s, 1.0, 3.0, 11.3, 0.8, "医疗数据要素可信流通平台", size=26, color=CYAN)
 text(s, 1.0, 3.9, 11.3, 0.6, "让医疗数据「可用不可见、可控可计量」", size=18, color=RGBColor(0xCB, 0xD5, 0xE1))
 text(s, 1.0, 5.5, 11.3, 0.6, "第二届全球技术创新大赛 · AI+医疗专题赛（赛道二：医疗大模型与数据）",
      size=15, color=RGBColor(0x94, 0xA3, 0xB8))
-text(s, 1.0, 6.1, 11.3, 0.6, "2026 · 中国温州", size=13, color=RGBColor(0x94, 0xA3, 0xB8))
+text(s, 1.0, 6.1, 11.3, 0.6, "2026 · 中国北京", size=13, color=RGBColor(0x94, 0xA3, 0xB8))
 
 # ---------- 2 痛点 ----------
 s = add_slide()
@@ -111,7 +111,7 @@ for i, (t, body) in enumerate(cols):
     text(s, x + 0.25, 3.0, 3.3, 2.2, body, size=15, color=DARK)
 text(s, 0.7, 5.9, 12.0, 1.0,
      "政策机遇：数据要素×医疗健康为国家行动方向，浙江省为市场化配置改革试点\n"
-     "大赛主办方（温州市经信局）核心 KPI 即数据要素；中国（温州）智能谷是天然落地载体",
+     "大赛主办方（北京市经信局）核心 KPI 即数据要素；中国（北京）智能谷是天然落地载体",
      size=15, bold=False, color=CYAN)
 page_no(s, 2)
 
@@ -235,12 +235,12 @@ page_no(s, 8)
 
 # ---------- 9 落地计划 ----------
 s = add_slide()
-header(s, "温州落地计划：智能谷起步，医共体试点")
+header(s, "北京落地计划：智能谷起步，医共体试点")
 steps = [
-    ("T+3月", "入驻中国（温州）智能谷；注册项目公司；申请鹿城区「AI+医疗应用场景示范项目库」"),
+    ("T+3月", "入驻中国（北京）智能谷；注册项目公司；申请北京区「AI+医疗应用场景示范项目库」"),
     ("T+6月", "与 1 家三甲 + 2 家基层机构签约，真实医共体环境联邦建模试点"),
     ("T+12月", "数据产品目录上线运营，首笔真实数据要素交易；申报省标杆项目（衔接最高 500 万奖补）"),
-    ("T+24月", "复制到温州其他区县及浙南医共体，建成区域医疗数据要素流通基础设施"),
+    ("T+24月", "复制到北京其他区县及浙南医共体，建成区域医疗数据要素流通基础设施"),
 ]
 for i, (t, body) in enumerate(steps):
     y = 1.8 + i * 1.25
@@ -274,8 +274,8 @@ s = add_slide()
 rect(s, 0, 0, 13.333, 7.5, DARK)
 text(s, 1.0, 2.4, 11.3, 1.0, "让沉睡的医疗数据，", size=36, bold=True, color=WHITE)
 text(s, 1.0, 3.3, 11.3, 1.0, "变成可确权、可定价、可流通、可监管的数据要素。", size=36, bold=True, color=CYAN)
-text(s, 1.0, 5.2, 11.3, 0.6, "瓯医数链 OuMedTrust · 医疗数据 · 可用不可见", size=18, color=RGBColor(0x94, 0xA3, 0xB8))
-text(s, 1.0, 6.3, 11.3, 0.6, "第二届全球技术创新大赛 AI+医疗专题赛 · 2026 中国温州", size=13, color=RGBColor(0x94, 0xA3, 0xB8))
+text(s, 1.0, 5.2, 11.3, 0.6, "医数可信 MediTrust · 医疗数据 · 可用不可见", size=18, color=RGBColor(0x94, 0xA3, 0xB8))
+text(s, 1.0, 6.3, 11.3, 0.6, "第二届全球技术创新大赛 AI+医疗专题赛 · 2026 中国北京", size=13, color=RGBColor(0x94, 0xA3, 0xB8))
 
 prs.save(OUT)
 print(f"PPT 已生成: {OUT}（{len(prs.slides.__iter__.__self__._sldIdLst)} 页）")

@@ -32,7 +32,7 @@ def _build_split(data: dict[str, pd.DataFrame]):
 
     test_df = pd.concat([
         test["A_三甲医院"].iloc[:1400],
-        test["B_县人民医院"].iloc[:800],
+        test["B_区级医院"].iloc[:800],
         test["C_社区卫生中心"].iloc[:400],
     ])
     X_test_raw = test_df[FEATURES].to_numpy(float)

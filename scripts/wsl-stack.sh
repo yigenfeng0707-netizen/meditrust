@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# 瓯医数链 栈的 WSL Docker 启停助手（Windows 侧 Git Bash 调用）
+# 医数可信 栈的 WSL Docker 启停助手（Windows 侧 Git Bash 调用）
 # 用法: ./scripts/wsl-stack.sh up|down|ps|logs [dev|prod]
 set -e
 DISTRO=Ubuntu-D
-REPO=/mnt/d/APPs/温州AI医疗比赛/oumed-chain
+REPO=${REPO:-/mnt/d/APPs/oumed-chain}   # 可按需导出 REPO 覆盖
 PROFILE=${2:-dev}
 
 case "$1" in

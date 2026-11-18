@@ -37,7 +37,7 @@ async def client(monkeypatch):
     async with session_factory() as session:
         session.add(User(id=1, name="张阿姨", age=62, gender="女", city="杭州",
                          insurance_type="职工医保", employee_status="退休", role="member"))
-        session.add(User(id=2, name="监管员", age=40, gender="男", city="温州",
+        session.add(User(id=2, name="监管员", age=40, gender="男", city="北京",
                          insurance_type="职工医保", employee_status="在职", role="regulator"))
         session.add(User(id=3, name="运营员", age=35, gender="女", city="杭州",
                          insurance_type="职工医保", employee_status="在职", role="operator"))

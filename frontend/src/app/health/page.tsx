@@ -33,7 +33,7 @@ import { getHealthProfile } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 import type { HealthProfile } from "@/lib/mock-data";
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
-import { DidaYiLogo } from "@/components/didayi-logo";
+import { BrandLogo } from "@/components/brand-logo";
 
 echarts.use([RadarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
@@ -248,7 +248,7 @@ export default function HealthPage() {
               </div>
             </div>
             <div className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-sm">
-              <DidaYiLogo />
+              <BrandLogo />
               <div className="hidden border-l border-sky-100 pl-4 sm:block"><ApiStatusIndicator /></div>
             </div>
           </div>

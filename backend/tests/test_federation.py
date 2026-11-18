@@ -1,4 +1,4 @@
-"""联邦学习引擎单元测试（瓯医数链核心，种子固定全确定性）。"""
+"""联邦学习引擎单元测试（医数可信核心，种子固定全确定性）。"""
 
 import sys
 from pathlib import Path
@@ -35,7 +35,7 @@ def setup():
         moments.append((len(X), X.sum(0), (X**2).sum(0)))
     scaler = FedScaler().fit(moments)
 
-    test_df = pd.concat([data["A_三甲医院"].iloc[:1400], data["B_县人民医院"].iloc[:800]])
+    test_df = pd.concat([data["A_三甲医院"].iloc[:1400], data["B_区级医院"].iloc[:800]])
     X_test = scaler.transform(test_df[FEATURES].to_numpy(float))
     y_test = test_df[TARGET].to_numpy(float)
 

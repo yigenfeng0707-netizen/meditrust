@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { DidaYiLogo } from "@/components/didayi-logo";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   Home,
   Shield,
@@ -47,7 +47,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-[84px] items-center border-b border-sky-100 px-5">
-        <DidaYiLogo />
+        <BrandLogo />
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
         {navItems.map((item) => {
@@ -77,7 +77,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <div className="flex min-w-0 flex-col">
             <span className="text-sm font-medium text-slate-700">
-              瓯医数链助手
+              医数可信助手
             </span>
             <span className="whitespace-nowrap text-[11px] leading-relaxed text-slate-400">
               关键医疗信号识别 × 患者信息连接

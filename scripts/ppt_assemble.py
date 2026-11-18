@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""瓯医数链初赛路演 PPT 组装（12 页叙事版，2026-08-31 真实数据口径）"""
+"""医数可信初赛路演 PPT 组装（12 页叙事版，2026-08-31 真实数据口径）"""
 import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
@@ -12,7 +12,7 @@ BASE = os.path.join(os.path.dirname(__file__), "..", "docs", "PPT素材")
 CH = os.path.join(BASE, "charts")
 SC = os.path.join(BASE, "scenes")
 OUT_PPTX = os.path.join(os.path.dirname(__file__), "..", "docs",
-                        "瓯医数链-初赛路演-视觉版.pptx")
+                        "医数可信-初赛路演-视觉版.pptx")
 
 BG = RGBColor(0x0A, 0x1A, 0x3F)
 CYAN = RGBColor(0x00, 0xD4, 0xFF)
@@ -115,7 +115,7 @@ band.fill.solid()
 band.fill.fore_color.rgb = BG
 band.line.fill.background()
 band.shadow.inherit = False
-add_text(s, 0.8, 5.05, 12, 0.95, "瓯医数链 OuMedTrust", 44, WHITE, bold=True)
+add_text(s, 0.8, 5.05, 12, 0.95, "医数可信 MediTrust", 44, WHITE, bold=True)
 add_text(s, 0.8, 6.05, 12, 0.55, "医疗数据要素可信流通平台 · 让数据「可用不可见、可控可计量」",
          20, CYAN)
 add_text(s, 0.8, 6.72, 12, 0.5,
@@ -245,7 +245,7 @@ page_header(s, "三引擎全部跑过真实公开数据集 —— 指标不是�
 engines = [
     ("联邦引擎", "UCI 心脏病\n297 例真实患者", "AUC 0.9091\n追平集中训练上界", CYAN),
     ("EEG 引擎", "PhysioNet eegmmidb\n8 条真实记录 · 7 名受试", "闭眼→放松 睁眼→疲劳\n符合脑电生理学常识", GREEN),
-    ("影像引擎", "Oncoformer 泛癌预测\nCell 2026 · 温附医一院", "医院数据不出院\n模型作为产品流通", ORANGE),
+    ("影像引擎", "Oncoformer 泛癌预测\nCell 2026 · 合作三甲医院一院", "医院数据不出院\n模型作为产品流通", ORANGE),
 ]
 for i, (t, src, res, c) in enumerate(engines):
     x = 0.55 + i * 4.25
@@ -306,11 +306,11 @@ for i, d in enumerate(diffs):
              WHITE if i == 0 else GREY, bold=(i == 0), line_spacing=1.25)
 takeaway(s, "数据要素×医疗健康 = 国家数据局重点方向，浙江是市场化配置改革试点")
 
-# ---------- S11 温州落地 ----------
+# ---------- S11 北京落地 ----------
 s = prs.slides.add_slide(BLANK)
 set_bg(s)
-page_header(s, "温州落地：鹿城起笔，浙南成网",
-            "衔接温州市经信局核心 KPI · 中国（温州）智能谷天然载体", "10")
+page_header(s, "北京落地：北京起笔，浙南成网",
+            "衔接北京市经信局核心 KPI · 中国（北京）智能谷天然载体", "10")
 s.shapes.add_picture(os.path.join(CH, "07_timeline.png"),
                      Inches(0.55), Inches(1.8), width=Inches(12.2))
 takeaway(s, "落地后可申报：重大科技攻关 200 万 · 场景应用奖补 500 万 · 领军创业 30-3000 万", GOLD)
@@ -326,11 +326,11 @@ band.fill.fore_color.rgb = BG
 band.line.fill.background()
 band.shadow.inherit = False
 semi_transparent(band, 80000)
-add_text(s, 0.8, 4.75, 12, 0.8, "让温州成为医疗数据要素流通的第一城", 34, WHITE,
+add_text(s, 0.8, 4.75, 12, 0.8, "让北京成为医疗数据要素流通的第一城", 34, WHITE,
          bold=True)
 add_text(s, 0.8, 5.7, 12, 0.5,
          "430 项单元测试全绿 · 线上 Demo 每日可验 · 软著×3 申报中", 16, CYAN)
-add_text(s, 0.8, 6.35, 12, 0.5, "瓯医数链 OuMedTrust · 恳请评委指正", 14, GREY)
+add_text(s, 0.8, 6.35, 12, 0.5, "医数可信 MediTrust · 恳请评委指正", 14, GREY)
 
 prs.save(OUT_PPTX)
 print("saved:", OUT_PPTX, "slides:", len(prs.slides._sldIdLst))

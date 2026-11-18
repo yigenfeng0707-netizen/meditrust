@@ -5,8 +5,8 @@
 
 用法（backend 目录，需 requirements-cancer.txt 环境）:
     python scripts/cancer_precompute.py \
-        --data-dir D:/APPs/温州AI医疗比赛/wenzhou-ai-med-archive/oncoformer/sample_data/compass \
-        --ckpt     D:/APPs/温州AI医疗比赛/wenzhou-ai-med-archive/oncoformer/checkpoints/demo_finetune.ckpt \
+        --data-dir ./data/oncoformer/sample_data/compass \
+        --ckpt     ./data/oncoformer/checkpoints/demo_finetune.ckpt \
         --n 24
 """
 

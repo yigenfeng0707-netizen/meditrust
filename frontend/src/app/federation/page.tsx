@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 联邦学习协作网络（瓯医数链底座 · 核心演示页）
+ * 联邦学习协作网络（医数可信底座 · 核心演示页）
  *
  * 三家模拟医院数据不出院联合建模：
  * - 医院数据全景（联邦统计口径）
@@ -37,10 +37,12 @@ import {
   createFederationJob,
   listFederationJobs,
   getFederationBenchmark,
+  listChainAnchors,
   type FederationOverview,
   type FederationJobDetail,
   type FederationJobSummary,
   type FederationBenchmark,
+  type ChainAnchorSummary,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -70,6 +72,7 @@ export default function FederationPage() {
   const [lastJob, setLastJob] = useState<FederationJobDetail | null>(null);
   const [bench, setBench] = useState<FederationBenchmark | null>(null);
   const [benchLoading, setBenchLoading] = useState(false);
+  const [anchors, setAnchors] = useState<ChainAnchorSummary[]>([]);
   const benchRequested = useRef(false);
 
   const refreshJobs = useCallback(async () => {
@@ -77,10 +80,16 @@ export default function FederationPage() {
     if (data) setJobs(data);
   }, []);
 
+  const refreshAnchors = useCallback(async () => {
+    const data = await listChainAnchors(3);
+    if (data) setAnchors(data.anchors);
+  }, []);
+
   useEffect(() => {
     getFederationOverview().then(setOverview);
     refreshJobs();
-  }, [refreshJobs]);
+    refreshAnchors();
+  }, [refreshJobs, refreshAnchors]);
 
   async function launchJob() {
     setRunning(true);
@@ -89,6 +98,7 @@ export default function FederationPage() {
       const job = await createFederationJob({ rounds, local_epochs: epochs, dp_sigma: sigma });
       if (job) setLastJob(job);
       await refreshJobs();
+      await refreshAnchors();
     } finally {
       setRunning(false);
     }
@@ -337,6 +347,47 @@ export default function FederationPage() {
           </div>
         )}
 
+        {/* 外部锚定状态 —— 哈希链由 RFC 3161 可信时间戳锚定，第三方可独立验证 */}
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-2.5 text-xs">
+          <span className="flex items-center gap-1.5 font-semibold text-emerald-800">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            外部锚定
+          </span>
+          {anchors.length > 0 ? (
+            <>
+              <span className="text-slate-600">
+                最近锚定{" "}
+                <span className="font-mono">
+                  {anchors[0].created_at?.slice(0, 16).replace("T", " ")}
+                </span>
+              </span>
+              <span className="text-slate-600">
+                覆盖 <span className="font-semibold text-emerald-700">{anchors[0].event_count}</span> 条事件
+              </span>
+              <span className="truncate font-mono text-[10px] text-slate-500">
+                链尖 {anchors[0].tip_hash?.slice(0, 16)}…
+              </span>
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                  anchors[0].status === "ok" || anchors[0].status === "anchored"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-amber-500 text-white",
+                )}
+              >
+                {anchors[0].status}
+              </span>
+              <span className="text-[10px] text-emerald-600">
+                RFC 3161 时间戳 · 令牌可在管理端核验
+              </span>
+            </>
+          ) : (
+            <span className="text-slate-500">
+              尚无锚定记录。存证链已在本页实时串联，锚定可在管理端手动触发或由每日调度自动执行。
+            </span>
+          )}
+        </div>
+
         {lastJob && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -367,6 +418,54 @@ export default function FederationPage() {
                 </div>
               </div>
             </div>
+
+            {/* 差分隐私预算的形式化报告 —— 多数项目只写 ε，我们输出可审计报告 */}
+            {(() => {
+              const p = lastJob.result?.privacy;
+              if (!p) return null;
+              return (
+                <div className="rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-3">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold text-violet-800">
+                      差分隐私预算报告（形式化 ε, δ）
+                    </span>
+                    <span className="rounded bg-violet-600 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                      {p.accountant ?? "RDP"}
+                    </span>
+                    <span className="text-[10px] text-violet-500">
+                      每次任务自动出具，可随审计材料提交
+                    </span>
+                  </div>
+                  {p.enabled ? (
+                    <>
+                      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+                        <span className="text-xs text-slate-600">
+                          ε =
+                          <span className="ml-1 font-mono text-lg font-bold text-violet-700">
+                            {p.epsilon}
+                          </span>
+                        </span>
+                        <span className="text-xs text-slate-600">
+                          δ =
+                          <span className="ml-1 font-mono text-sm font-semibold text-violet-700">
+                            {p.delta}
+                          </span>
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          σ = {p.sigma} · 裁剪范数 {p.clip_norm} · {p.rounds} 轮
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+                        {p.note}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-slate-500">{p.note}</p>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="grid gap-4 lg:grid-cols-2">
               {curveOption && (
                 <ReactEChartsCore

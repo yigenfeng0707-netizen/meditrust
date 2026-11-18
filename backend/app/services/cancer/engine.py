@@ -22,7 +22,7 @@ from app.services.cancer.visit_synthesizer import synthesize_visits
 
 logger = logging.getLogger(__name__)
 
-DISCLAIMER = "基于 Oncoformer 研究模型的演示输出（温附医团队，Cell 2026），非临床诊断依据。"
+DISCLAIMER = "基于 Oncoformer 研究模型的演示输出（Cell 2026），非临床诊断依据。"
 
 # 患者级 max 概率 → 风险分层（演示口径）
 _LEVELS = ((0.6, "高"), (0.3, "中"), (0.0, "低"))

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""瓯医数链商业计划书（决赛版）Word 生成：python-docx 富文本
+"""医数可信商业计划书（决赛版）Word 生成：python-docx 富文本
 
 - 封面 / 自动目录域 / 页眉页脚页码 / 样式化标题 / 表格 / 300dpi 图表 / 实测截图
 - 事实口径：docs/superpowers/specs/2026-09-02-deliverables-redesign.md 事实基准
 运行：backend/.venv/Scripts/python scripts/build_bp_docx.py
-输出：docs/瓯医数链-商业计划书-决赛版.docx
+输出：docs/医数可信-商业计划书-决赛版.docx
 """
 import os
 
@@ -18,7 +18,7 @@ from docx.shared import Cm, Inches, Pt, RGBColor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHARTS = os.path.join(ROOT, "docs", "BP素材", "charts")
 SHOTS = os.path.join(ROOT, "docs", "screenshots")
-OUT = os.path.join(ROOT, "docs", "瓯医数链-商业计划书-决赛版.docx")
+OUT = os.path.join(ROOT, "docs", "医数可信-商业计划书-决赛版.docx")
 
 INK = RGBColor(0x1E, 0x29, 0x3B)
 BLUE = RGBColor(0x08, 0x91, 0xB2)
@@ -265,7 +265,7 @@ add_page_number_footer(section)
 # 页眉
 header_p = section.header.paragraphs[0]
 header_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-run = header_p.add_run("瓯医数链 OuMedTrust · 商业计划书（决赛版）")
+run = header_p.add_run("医数可信 MediTrust · 商业计划书（决赛版）")
 set_run_font(run, size=8.5, color=GRAY)
 
 # ===== 封面 =====
@@ -275,7 +275,7 @@ add_para(doc, "第二届全球技术创新大赛 · AI+医疗专题赛", size=13
          align=WD_ALIGN_PARAGRAPH.CENTER, space_after=4)
 add_para(doc, "赛道二：医疗大模型与数据", size=12, color=GRAY,
          align=WD_ALIGN_PARAGRAPH.CENTER, space_after=36)
-add_para(doc, "瓯医数链 OuMedTrust", size=34, bold=True, color=BLUE,
+add_para(doc, "医数可信 MediTrust", size=34, bold=True, color=BLUE,
          align=WD_ALIGN_PARAGRAPH.CENTER, space_after=8)
 add_para(doc, "医疗数据要素可信流通平台", size=19, bold=True, color=INK,
          align=WD_ALIGN_PARAGRAPH.CENTER, space_after=10)
@@ -295,7 +295,7 @@ page_break(doc)
 # ===== 一、执行摘要 =====
 add_heading(doc, "一、执行摘要", 1)
 add_rich(doc, [
-    ("瓯医数链是一个", False, INK),
+    ("医数可信是一个", False, INK),
     ("医疗数据要素可信流通平台", True, INK),
     ("：以联邦学习实现医院间「数据不出院」联合建模，以本地大模型实现病历自动治理与 "
      "PHI 脱敏，以审计存证链保障全程合规，并打通数据产品目录、授权交易、收益分成与"
@@ -317,7 +317,7 @@ add_bullet(doc, [("模式已闭环：", True, INK),
 add_para(doc, "", space_after=2)
 add_rich(doc, [
     ("产品形态：1 个可信数据底座（联邦协作 × AI 治理 × 流通交易 × 监管合规）+ N 个医疗 "
-     "AI 应用生态——9 个医疗智能体作为数据消费方与民生出口，其中泛癌卫士直接承载温附医"
+     "AI 应用生态——9 个医疗智能体作为数据消费方与民生出口，其中泛癌卫士直接承载合作三甲医院"
      "发表于 Cell（2026）的 Oncoformer 泛癌预测模型，是「医院数据不出院、模型作为数据"
      "产品在平台流通」的标杆案例。", False, INK),
 ], indent=0.75)
@@ -337,13 +337,13 @@ add_bullet(doc, [("流通没有基础设施：", True, INK),
                   "的技术底座与合规流程", False, INK)])
 add_heading(doc, "2.2 政策机遇（精准卡位）", 2)
 add_bullet(doc, "「数据要素×医疗健康」为国家数据局重点行动方向；浙江省是数据要素市场化配置改革试点")
-add_bullet(doc, "本赛道主办方第一名为温州市经济和信息化局——数据要素正是其核心 KPI")
-add_bullet(doc, "中国（温州）智能谷定位数字经济，医疗数据要素平台是天然的落地载体")
+add_bullet(doc, "本赛道主办方第一名为北京市经济和信息化局——数据要素正是其核心 KPI")
+add_bullet(doc, "中国（北京）智能谷定位数字经济，医疗数据要素平台是天然的落地载体")
 page_break(doc)
 
 # ===== 三、解决方案 =====
 add_heading(doc, "三、解决方案：四层架构闭环", 1)
-add_figure(doc, "03_architecture.png", 16.0, "图 3-1  瓯医数链四层架构")
+add_figure(doc, "03_architecture.png", 16.0, "图 3-1  医数可信四层架构")
 add_heading(doc, "3.1 闭环故事（一条患者数据的旅程）", 2)
 add_para(doc, "社区卫生中心的病历经 AI 治理 Copilot 脱敏结构化 → 上架数据要素市场 → "
               "联邦任务消费三院数据训练风险模型（AUC 追平集中训练上界）→ 模型作为数据产品"
@@ -452,16 +452,16 @@ add_bullet(doc, [("差异化：", True, INK),
 add_figure(doc, "07_sharing.png", 10.5, "图 7-2  收益分成 70/20/10：医院得大头")
 page_break(doc)
 
-# ===== 八、温州落地计划 =====
-add_heading(doc, "八、温州落地计划", 1)
-add_figure(doc, "08_timeline.png", 16.0, "图 8-1  温州落地路线图")
+# ===== 八、北京落地计划 =====
+add_heading(doc, "八、北京落地计划", 1)
+add_figure(doc, "08_timeline.png", 16.0, "图 8-1  北京落地路线图")
 add_table(doc,
           ["阶段", "里程碑"],
           [
-              ["落地（T+3 月）", "入驻中国（温州）智能谷；注册项目公司；申请鹿城区「AI+医疗应用场景示范项目库」"],
+              ["落地（T+3 月）", "入驻中国（北京）智能谷；注册项目公司；申请北京区「AI+医疗应用场景示范项目库」"],
               ["试点（T+6 月）", "与 1 家三甲 + 2 家基层机构签约，真实医共体环境联邦建模试点"],
               ["展开（T+12 月）", "数据产品目录上线运营，首笔真实数据要素交易；申报省标杆项目（衔接最高 500 万场景应用奖补）"],
-              ["规模化（T+24 月）", "复制到温州其他区县及浙南医共体，建成区域医疗数据要素流通基础设施"],
+              ["规模化（T+24 月）", "复制到北京其他区县及浙南医共体，建成区域医疗数据要素流通基础设施"],
           ],
           widths=[3.6, 12.4])
 add_para(doc, "", space_after=2)
@@ -483,7 +483,7 @@ add_heading(doc, "9.2 知识产权", 2)
 add_table(doc,
           ["类型", "名称 / 登记号", "权属与状态"],
           [
-              ["软件著作权（主轨）", "瓯医数链平台 V1.0 / 治理 Copilot / 联邦引擎 ×3", "材料齐备，提交中（受理通知书将作资格凭证）"],
+              ["软件著作权（主轨）", "医数可信平台 V1.0 / 治理 Copilot / 联邦引擎 ×3", "材料齐备，提交中（受理通知书将作资格凭证）"],
               ["软件著作权（已登记）", "基于目标检测的视频人数统计计算软件 V1.0（2023SR0719236）", "个人独有，2023-06 下证，证书原件已核验；与影像卫士同源"],
               ["软件著作权（已登记）", "基于AI大数据的智能充电桩故障检测计算软件 V1.0（2023SR0718714）", "个人独有，2023-06 下证；时序异常检测，与 EEG/健康预警同源"],
               ["软件著作权（共有）", "商业经营管理数据异常预警软件 V1.0（2023SR0723903）", "与银泰商业管理集团共有；团队技术能力佐证"],
@@ -522,7 +522,7 @@ add_table(doc,
               ["2:30-4:00", "AI 病历治理", "粘贴真实格式病历 → 一键治理 → 4 类 PHI 实时掩码 → 本地 qwen3:4b 结构化（院内网，断网可跑）"],
               ["4:00-5:30", "数据要素市场", "产品目录 → 一键授权采购 → 支付宝真实收款 → 实时分成与存证哈希"],
               ["5:30-6:30", "监管看板", "流通金额、收益分配、隐私事件 0 起、存证链校验、管理端对账"],
-              ["6:30-8:00", "落地与愿景", "温州医共体试点路径 + 政策衔接收尾"],
+              ["6:30-8:00", "落地与愿景", "北京医共体试点路径 + 政策衔接收尾"],
           ],
           widths=[2.6, 3.4, 10.0])
 add_para(doc, "", space_after=6)

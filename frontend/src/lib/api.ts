@@ -1,4 +1,4 @@
-// 瓯医数链 - API 客户端层
+// 医数可信 - API 客户端层
 // 优先调用后端 API，后端不可用时自动降级为模拟数据
 
 import {
@@ -164,7 +164,7 @@ export async function sendChatMessage(
   // 降级：使用模拟数据
   const mock = mockChatResponses[req.message];
   return {
-    agent_type: mock?.agent || "瓯医数链助手",
+    agent_type: mock?.agent || "医数可信助手",
     response:
       mock?.content ||
       "收到您的问题，正在为您分析中...我会尽快给出详细解答。",
@@ -949,7 +949,7 @@ export async function getRealImagingDetail(
   return apiFetch<RealImagingDetail>(`/api/imaging/real/${encodeURIComponent(studyId)}${q}`);
 }
 
-// ==================== 瓯医数链 · 联邦学习协作 ====================
+// ==================== 医数可信 · 联邦学习协作 ====================
 
 export interface FederationHospital {
   site: string;
@@ -969,6 +969,21 @@ export interface FederationOverview {
   global_test_n: number;
 }
 
+/** 差分隐私预算的形式化报告（RDP 矩会计转换后的 per-node 最坏保证） */
+export interface PrivacyReport {
+  enabled: boolean;
+  epsilon: number | null;
+  delta: number | null;
+  sigma?: number;
+  clip_norm?: number;
+  rounds?: number;
+  accountant?: string;
+  sampling?: string;
+  perspective?: string;
+  note?: string;
+  local_epochs?: number;
+}
+
 export interface FederationJobResult {
   rounds: number;
   local_epochs: number;
@@ -977,6 +992,7 @@ export interface FederationJobResult {
   auc_curve: number[];
   final_auc: number;
   per_site: Record<string, { local: number; federated: number }>;
+  privacy?: PrivacyReport;
 }
 
 export interface FederationJobSummary {
@@ -1037,7 +1053,24 @@ export async function getFederationBenchmark(force = false): Promise<FederationB
   return apiFetch<FederationBenchmark>(`/api/federation/benchmark?force=${force}`);
 }
 
-// ==================== 瓯医数链 · AI 病历治理 ====================
+/** 存证链外部锚定记录（公开视图，不含时间戳令牌原文） */
+export interface ChainAnchorSummary {
+  created_at: string | null;
+  tip_hash: string;
+  event_count: number;
+  status: string;
+  tsa_url: string | null;
+}
+
+export async function listChainAnchors(
+  limit = 5,
+): Promise<{ total: number; anchors: ChainAnchorSummary[] } | null> {
+  return apiFetch<{ total: number; anchors: ChainAnchorSummary[] }>(
+    `/api/federation/anchors?limit=${limit}`,
+  );
+}
+
+// ==================== 医数可信 · AI 病历治理 ====================
 
 export interface DeidEntity {
   start: number;
@@ -1073,7 +1106,7 @@ export async function governNote(text: string, useLlm = true): Promise<GovernRes
   });
 }
 
-// ==================== 瓯医数链 · 数据要素市场 ====================
+// ==================== 医数可信 · 数据要素市场 ====================
 
 export interface DataProductItem {
   id: string;

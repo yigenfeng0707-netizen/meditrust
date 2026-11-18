@@ -89,7 +89,7 @@ def tsa_post(url: str, tsr_body: bytes, timeout: float = 15.0) -> bytes:
         data=tsr_body,
         headers={
             "Content-Type": "application/timestamp-query",
-            "User-Agent": "Mozilla/5.0 (OuMedTrust chain anchor)",
+            "User-Agent": "Mozilla/5.0 (MediTrust chain anchor)",
         },
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:

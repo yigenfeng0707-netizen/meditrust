@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""瓯医数链 BP Word 专业图表生成（浅色印刷风，300dpi，2026-09-02 事实口径）
+"""医数可信 BP Word 专业图表生成（浅色印刷风，300dpi，2026-09-02 事实口径）
 
 输出：docs/BP素材/charts/*.png（供 build_bp_docx.py 嵌入 Word）
 运行：backend/.venv/Scripts/python scripts/bp_charts.py
@@ -126,7 +126,7 @@ def chart_architecture():
     ax.set_ylim(0, 7.6)
     layers = [
         (6.0, BLUE, "应用层", "9 个医疗智能体 · 数据消费方与民生出口",
-         "健康卫士 · 影像卫士 · 政策参谋 · 泛癌卫士（温附医 Cell 2026 Oncoformer）· 档案管家 · 数据管家 · 报销助手 · 药事卫士 · EEG 面板"),
+         "健康卫士 · 影像卫士 · 政策参谋 · 泛癌卫士（合作三甲医院 Cell 2026 Oncoformer）· 档案管家 · 数据管家 · 报销助手 · 药事卫士 · EEG 面板"),
         (4.35, NAVY, "流通层", "数据要素市场化闭环",
          "数据产品目录 → 用途限定授权 → 交易结算（支付宝 live 已实证）→ 收益分成 70/20/10"),
         (2.7, ORANGE, "协作层", "数据可用不可见",
@@ -148,7 +148,7 @@ def chart_architecture():
                 arrowprops=dict(arrowstyle="-|>", color=BLUE, lw=2.0))
     ax.text(11.55, 4.25, "交\n易\n反\n哺\n数\n据", color=BLUE, fontsize=11,
             ha="center", va="center", fontweight="bold")
-    ax.set_title("瓯医数链四层架构 · 治理 - 协作 - 流通 - 监管完整闭环",
+    ax.set_title("医数可信四层架构 · 治理 - 协作 - 流通 - 监管完整闭环",
                  fontsize=15, fontweight="bold", color=INK, pad=14)
     plt.tight_layout()
     plt.savefig(os.path.join(OUT, "03_architecture.png"), dpi=300,
@@ -300,13 +300,13 @@ def chart_sharing():
 
 
 def chart_timeline():
-    """图8 温州落地路线图"""
+    """图8 北京落地路线图"""
     fig, ax = plt.subplots(figsize=(12, 5.2), dpi=300)
     ax.axis("off")
     ax.set_xlim(0, 12)
     ax.set_ylim(0, 5.2)
     stages = [
-        ("T+3月", "落地", "入驻中国（温州）智能谷\n注册项目公司\n申报鹿城 AI+医疗示范项目库", BLUE),
+        ("T+3月", "落地", "入驻中国（北京）智能谷\n注册项目公司\n申报北京 AI+医疗示范项目库", BLUE),
         ("T+6月", "试点", "1 家三甲 + 2 家基层机构签约\n真实医共体环境联邦建模试点", NAVY),
         ("T+12月", "运营", "数据产品目录上线运营\n首笔真实数据要素交易\n申报省标杆项目（最高500万奖补）", ORANGE),
         ("T+24月", "规模化", "复制浙南医共体\n建成区域医疗数据要素\n流通基础设施", GOLD),
@@ -324,7 +324,7 @@ def chart_timeline():
                 va="top")
     ax.annotate("", xy=(11.6, 2.7), xytext=(10.9, 2.7),
                 arrowprops=dict(arrowstyle="-|>", color=BLUE, lw=2.2))
-    ax.set_title("温州落地路线图 · 鹿城起笔 · 浙南成网",
+    ax.set_title("北京落地路线图 · 北京起笔 · 浙南成网",
                  fontsize=15, fontweight="bold", color=INK, pad=12)
     plt.tight_layout()
     plt.savefig(os.path.join(OUT, "08_timeline.png"), dpi=300,

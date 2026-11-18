@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { Loader2, LogIn, Mail, UserPlus, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DidaYiLogo } from "@/components/didayi-logo";
+import { BrandLogo } from "@/components/brand-logo";
 import { useUser } from "@/lib/user-context";
 import { loginByEmail, registerByEmail } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -60,10 +60,10 @@ export default function LoginPage() {
           {/* 品牌区 */}
           <div className="mb-6 flex flex-col items-center gap-3 text-center">
             <div className="h-14 w-14 overflow-hidden rounded-2xl bg-cyan-50">
-              <DidaYiLogo compact />
+              <BrandLogo compact />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">瓯医数链 · OuMedTrust</h1>
+              <h1 className="text-xl font-bold text-slate-900">医数可信 · MediTrust</h1>
               <p className="mt-1 text-xs text-slate-500">
                 注册后您的健康档案、医保分析与用药记录都将归属此账号
               </p>

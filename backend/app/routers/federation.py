@@ -1,4 +1,4 @@
-"""瓯医数链 · 联邦学习协作路由
+"""医数可信 · 联邦学习协作路由
 
 数据要素协作底座的真实实现：
 - 医院数据全景（联邦统计口径，无个体记录）
@@ -22,6 +22,7 @@ from app.database import get_db
 from app.deps import SessionDep
 from app.models import FederationJob
 from app.services.federated import get_benchmark, get_overview, run_job
+from app.services.privacy_accountant import privacy_report
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/federation", tags=["联邦学习协作"])
@@ -108,6 +109,11 @@ async def create_job(req: JobRequest, db: AsyncSession = Depends(get_db), _sessi
             lambda: run_job(rounds=req.rounds, local_epochs=req.local_epochs,
                             dp_sigma=req.dp_sigma, clip_norm=job.clip_norm),
         )
+        # 附上形式化隐私预算报告：让每次协作都自带可审计的 (ε, δ) 口径，
+        # 而不是只在文档里声明「做了差分隐私」。
+        result["privacy"] = privacy_report(
+            req.dp_sigma, job.clip_norm, req.rounds, local_epochs=req.local_epochs,
+        )
         job.result = json.dumps(result, ensure_ascii=False)
         job.status = "done"
     except Exception as e:  # noqa: BLE001
@@ -133,6 +139,31 @@ async def list_jobs(limit: int = 20, db: AsyncSession = Depends(get_db), _sessio
 def benchmark(force: bool = False):
     """标准基准实验（首次调用约1分钟，之后走缓存）。同步路由自动在线程池执行。"""
     return get_benchmark(force=force)
+
+
+@router.get("/anchors")
+async def list_anchors(limit: int = 5, db: AsyncSession = Depends(get_db)):
+    """最近的存证链外部锚定记录（公开视图：不含时间戳令牌原文）。
+
+    用途：让评委在演示页直接看到「哈希链已被 RFC 3161 可信时间戳锚定」，
+    而不是只听口头描述。令牌本身只在管理端可见。
+    """
+    from app import crud
+
+    anchors = await crud.get_chain_anchors(db, limit=min(max(limit, 1), 20))
+    return {
+        "total": len(anchors),
+        "anchors": [
+            {
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+                "tip_hash": a.tip_hash,
+                "event_count": a.event_count,
+                "status": a.status,
+                "tsa_url": a.tsa_url,
+            }
+            for a in anchors
+        ],
+    }
 
 
 @router.get("/jobs/{job_id}")

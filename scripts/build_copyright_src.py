@@ -1,53 +1,81 @@
 """软著源代码文档生成器（中国版权保护中心格式）
 
-规则：每页 50 行；程序量不足 60 页全量提交，超过则提交前 30 页 + 后 30 页；
-页眉含软件名称+版本号；剔除空行与纯注释行以提高密度。
+规则：
+- 每页 50 行；程序量不足 60 页全量提交，超过则提交前 30 页 + 后 30 页；
+- 页眉含软件名称 + 版本号；
+- 剔除空行与纯注释行，提高代码密度。
 
-运行：backend/.venv/Scripts/python scripts/build_copyright_src.py
-输出：docs/软著申请/<软件名>-源代码.txt（三份）
+三件软件的代码范围**互斥**，避免被审查员认定为同一软件拆分申请：
+- 件一（平台）：框架层 + 交易/管理/安全/档案等路由与服务；
+              **排除**联邦学习与病历治理相关文件。
+- 件二（病历治理）：治理引擎、结构化评估、OCR、知识库、LLM 封装 + 治理路由与页面。
+- 件三（联邦引擎）：联邦引擎、隐私会计、协调器、节点路由与服务、医院侧 Node Agent
+              + 联邦页面。
+
+运行：python scripts/build_copyright_src.py
+输出：docs/软著申请/<软件名>V1.0-源代码.txt（三份）
 """
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BACKEND = ROOT / "backend"
+FRONTEND_SRC = ROOT / "frontend" / "src"
 OUT_DIR = ROOT / "docs" / "软著申请"
 LINES_PER_PAGE = 50
-PAGES = 30  # 前30页 + 后30页
+PAGES = 30  # 前 30 页 + 后 30 页
+
+# 件二 / 件三的专属文件关键词（路径包含即归属）
+GOVERNANCE_KEYS = [
+    "governance", "structure_eval", "ocr_service", "knowledge_base", "llm_service",
+]
+FEDERATION_KEYS = [
+    "federated", "federation", "privacy_accountant", "node_agent",
+]
 
 TITLE_REGISTER = [
     {
-        "file": "1-瓯医数链医疗数据要素可信流通平台V1.0-源代码.txt",
-        "name": "瓯医数链医疗数据要素可信流通平台",
+        "file": "1-医数可信医疗数据要素可信流通平台V1.0-源代码.txt",
+        "name": "医数可信医疗数据要素可信流通平台",
         "version": "V1.0",
-        "roots": [BACKEND / "app"],
-        "globs": ["*.py"],
-        "exclude_substrings": ["test_", "scripts"],
+        "roots": [BACKEND / "app", FRONTEND_SRC / "app", FRONTEND_SRC / "lib"],
+        "globs": ["*.py", "page.tsx", "api.ts"],
+        # 件一为平台主干，排除子系统与测试代码
+        "exclude_contains": GOVERNANCE_KEYS + FEDERATION_KEYS + [
+            "/tests/", "test_", "/scripts/", "__pycache__",
+        ],
     },
     {
-        "file": "2-瓯医病历智能治理系统V1.0-源代码.txt",
-        "name": "瓯医病历智能治理系统",
+        "file": "2-医数可信病历智能治理系统V1.0-源代码.txt",
+        "name": "医数可信病历智能治理系统",
         "version": "V1.0",
-        "roots": [BACKEND / "app" / "services", BACKEND / "app" / "routers",
-                  ROOT / "frontend" / "src" / "app" / "governance"],
-        "globs": ["governance.py", "*.tsx"],
-        "exclude_substrings": ["test_"],
-        "filter_contains": True,  # 只取治理相关文件
-    },
-    {
-        "file": "3-瓯医联邦学习医疗协作引擎V1.0-源代码.txt",
-        "name": "瓯医联邦学习医疗协作引擎",
-        "version": "V1.0",
-        "roots": [BACKEND / "app" / "services" / "federated", BACKEND / "app" / "routers",
-                  ROOT / "frontend" / "src" / "app" / "federation"],
+        "roots": [BACKEND / "app", FRONTEND_SRC / "app" / "governance"],
         "globs": ["*.py", "page.tsx"],
-        "exclude_substrings": ["test_"],
-        "filter_contains": True,  # 只取联邦相关文件
+        "include_contains": GOVERNANCE_KEYS,
+    },
+    {
+        "file": "3-医数可信联邦学习医疗协作引擎V1.0-源代码.txt",
+        "name": "医数可信联邦学习医疗协作引擎",
+        "version": "V1.0",
+        "roots": [BACKEND / "app", BACKEND / "node_agent", FRONTEND_SRC / "app" / "federation"],
+        "globs": ["*.py", "page.tsx"],
+        "skip_roots": [BACKEND / "node_agent" / "node_agent" / "__init__.py"],
+        "include_contains": FEDERATION_KEYS,
     },
 ]
 
+# node_agent 目录下源码需要单独纳入件三（路径不含 app/）
+EXTRA_FILES = {
+    3: [
+        BACKEND / "node_agent" / "node_agent" / "tls.py",
+        BACKEND / "node_agent" / "node_agent" / "trainer.py",
+        BACKEND / "node_agent" / "node_agent" / "synthdata.py",
+        BACKEND / "node_agent" / "node_agent" / "__init__.py",
+    ],
+}
 
-def collect_files(item):
+
+def collect_files(item, index):
     files = []
     for root in item["roots"]:
         if root.is_file():
@@ -57,17 +85,21 @@ def collect_files(item):
             continue
         for g in item["globs"]:
             files.extend(root.rglob(g))
+
+    files.extend(EXTRA_FILES.get(index, []))
+
     seen, out = set(), []
     for f in files:
+        if not f.is_file():
+            continue
         rp = str(f.resolve())
-        if rp in seen or f.name.startswith("__"):
+        if rp in seen or f.name.startswith("__init__"):
             continue
-        if any(x in str(f) for x in item.get("exclude_substrings", [])):
+        if any(x in rp for x in item.get("exclude_contains", [])):
             continue
-        if item.get("filter_contains") and not any(k in rp for k in ("federat", "governance", "federation")):
+        inc = item.get("include_contains")
+        if inc and not any(k in rp for k in inc):
             continue
-        if "api.ts" in f.name and item["file"].startswith("2") and "governance" not in rp:
-            pass  # api.ts 允许进入治理系统材料
         seen.add(rp)
         out.append(f)
     return sorted(out, key=lambda p: str(p))
@@ -80,18 +112,16 @@ def code_lines(files):
             raw = f.read_text(encoding="utf-8", errors="ignore").splitlines()
         except Exception:
             continue
-        kept = 0
         for ln in raw:
             t = ln.rstrip()
             if not t.strip():
                 continue
-            if t.strip().startswith("#") and kept > 0 and len(t.strip()) > 2 and not t.strip().startswith("#!"):
-                # 保留有信息量的注释，剔除整行占位注释——版权中心要求高密度
-                if len(t.strip()) < 6:
-                    continue
+            stripped = t.strip()
+            # 剔除极短的占位注释，保留有信息量的注释
+            if stripped.startswith("#") and len(stripped) < 6:
+                continue
             lines.append(t)
-            kept += 1
-        lines.append("")
+        lines.append("")  # 文件间空行分隔
     return lines[:6000] if len(lines) > 6000 else lines
 
 
@@ -100,9 +130,8 @@ def paginate(lines, soft_name, version):
     if len(lines) <= need:
         selected = lines
     else:
-        head = lines[: LINES_PER_PAGE * PAGES]
-        tail = lines[-LINES_PER_PAGE * PAGES:]
-        selected = head + ["…（中间部分略）…"] + tail
+        # 超过 60 页：取前 30 页 + 后 30 页，正好 60 页（不插入额外说明行）
+        selected = lines[: LINES_PER_PAGE * PAGES] + lines[-LINES_PER_PAGE * PAGES:]
 
     out = []
     page = 1
@@ -118,13 +147,14 @@ def paginate(lines, soft_name, version):
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    for item in TITLE_REGISTER:
-        files = collect_files(item)
+    for index, item in enumerate(TITLE_REGISTER, start=1):
+        files = collect_files(item, index)
         lines = code_lines(files)
         content, pages = paginate(lines, item["name"], item["version"])
         out = OUT_DIR / item["file"]
         out.write_text(f"{item['name']} {item['version']}\n\n{content}", encoding="utf-8")
-        print(f"✓ {item['file']}: {pages} 页，{len(lines)} 行代码，来源 {len(files)} 个文件")
+        print(f"✓ {item['file']}")
+        print(f"    {pages} 页 | {len(lines)} 行 | {len(files)} 个文件")
 
 
 if __name__ == "__main__":

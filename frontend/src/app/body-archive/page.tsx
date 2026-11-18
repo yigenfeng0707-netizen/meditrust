@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Activity, Box, Database, FileText, HeartPulse, Orbit, Radio, ShieldCheck, Users } from "lucide-react";
 
 import { ApiStatusIndicator } from "@/components/api-status-indicator";
-import { DidaYiLogo } from "@/components/didayi-logo";
+import { BrandLogo } from "@/components/brand-logo";
 import { API_BASE } from "@/lib/api";
 import { useUser } from "@/lib/user-context";
 
@@ -44,7 +44,7 @@ export default function BodyArchivePage() {
             </div>
           </div>
           <div className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-sm">
-            <DidaYiLogo />
+            <BrandLogo />
             <div className="hidden border-l border-sky-100 pl-4 sm:block">
               <ApiStatusIndicator />
             </div>

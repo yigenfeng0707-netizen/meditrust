@@ -186,3 +186,16 @@ docs/软著申请/*.docx
 docs/superpowers/
 # old demo videos (webm, re-renderable)
 docs/演示视频/*.webm
+
+# ── HICOOL 公开仓库排除项（内部资料与合作凭证）──
+# 参赛策略、资格自查、评委分析、洽谈话术
+docs/hicool/
+# 软著申请材料（未授权，源代码不外传）
+docs/软著申请/
+# 旧赛事与旧品牌材料（仅本地留存）
+docs/BP-瓯医数链-初赛版.md
+docs/9-20报名冲刺清单.md
+docs/答辩QA预案.md
+docs/整篇重构方案-HICOOL.md
+# 真实支付凭证与收款截图（含订单号/金额，不得公开）
+docs/screenshots/alipay*

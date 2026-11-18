@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 
-import { DidaYiLogo } from "@/components/didayi-logo";
+import { BrandLogo } from "@/components/brand-logo";
 
 type BrandedPageHeaderProps = {
   title: string;
@@ -10,7 +10,7 @@ type BrandedPageHeaderProps = {
   status?: ReactNode;
 };
 
-/** 全站统一的瓯医数链业务页头。 */
+/** 全站统一的医数可信业务页头。 */
 export function BrandedPageHeader({ title, description, badge = "智能服务", status }: BrandedPageHeaderProps) {
   return (
     <section className="relative overflow-hidden rounded-3xl border border-sky-100 bg-[linear-gradient(120deg,#e9faff_0%,#f6fdff_55%,#fff7f3_100%)] px-6 py-5 shadow-[0_14px_36px_rgba(30,134,185,.09)] lg:px-8">
@@ -30,7 +30,7 @@ export function BrandedPageHeader({ title, description, badge = "智能服务", 
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 shadow-sm backdrop-blur-sm">
-          <DidaYiLogo />
+          <BrandLogo />
           {status ? <div className="hidden border-l border-sky-100 pl-4 sm:block">{status}</div> : null}
         </div>
       </div>

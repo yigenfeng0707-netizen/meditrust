@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""瓯医数链初赛 PPT 数据图表生成（真实数据口径 2026-08-31）"""
+"""医数可信初赛 PPT 数据图表生成（真实数据口径 2026-08-31）"""
 import os
 import matplotlib
 matplotlib.use("Agg")
@@ -190,7 +190,7 @@ def chart_architecture():
                 arrowprops=dict(arrowstyle="-|>", color=CYAN, lw=2.2))
     ax.text(11.62, 4.4, "交\n易\n反\n哺\n数\n据", color=CYAN, fontsize=12,
             ha="center", va="center", fontweight="bold")
-    ax.set_title("瓯医数链四层架构 · 治理-协作-流通-监管完整闭环",
+    ax.set_title("医数可信四层架构 · 治理-协作-流通-监管完整闭环",
                  color=CYAN, fontsize=18, fontweight="bold", pad=15)
     plt.tight_layout()
     plt.savefig(os.path.join(OUT, "05_architecture.png"), dpi=300,
@@ -240,7 +240,7 @@ def chart_timeline():
     ax.set_xlim(0, 12)
     ax.set_ylim(0, 5.5)
     stages = [
-        ("T+3月", "落地", "入驻温州智能谷\n注册项目公司\n申报AI+医疗示范库", CYAN),
+        ("T+3月", "落地", "入驻北京智能谷\n注册项目公司\n申报AI+医疗示范库", CYAN),
         ("T+6月", "试点", "1 家三甲 + 2 家基层\n签约联邦建模试点\n真实医共体环境", "#1E5BFF"),
         ("T+12月", "运营", "数据产品目录上线\n首笔真实要素交易\n申报省标杆(500万奖补)", ORANGE),
         ("T+24月", "规模化", "复制浙南医共体\n建成区域流通基础设施", GOLD),
@@ -258,7 +258,7 @@ def chart_timeline():
                 va="top")
     ax.annotate("", xy=(11.6, 2.8), xytext=(10.9, 2.8),
                 arrowprops=dict(arrowstyle="-|>", color=CYAN, lw=2.5))
-    ax.set_title("温州落地路线图 · 鹿城起笔 · 浙南成网",
+    ax.set_title("北京落地路线图 · 北京起笔 · 浙南成网",
                  color=CYAN, fontsize=18, fontweight="bold", pad=12)
     plt.tight_layout()
     plt.savefig(os.path.join(OUT, "07_timeline.png"), dpi=300,

@@ -116,7 +116,7 @@ async def test_email_deterministic_lookup_and_unique(session_factory):
         db.add(User(id=1, name="张阿姨", age=62, gender="女", city="杭州",
                     insurance_type="职工医保", employee_status="退休",
                     email="aunt@hospital.cn"))  # 业务口径：注册/登录均 strip().lower()
-        db.add(User(id=2, name="李叔", age=58, gender="男", city="温州",
+        db.add(User(id=2, name="李叔", age=58, gender="男", city="北京",
                     insurance_type="居民医保", employee_status="在职",
                     email="li@hospital.cn"))
         await db.commit()
@@ -144,7 +144,7 @@ async def test_diagnosis_plaintext_mode_and_encrypted_mode(session_factory):
     """diagnosis：未配密钥=明文直存读回一致；配密钥=落库密文读出明文。"""
     async with session_factory() as db:
         db.add(MedicalRecord(id=1, user_id=1, date=datetime(2026, 8, 1),
-                             hospital="温州市医院",
+                             hospital="北京市医院",
                              department="普外科", diagnosis="急性阑尾炎", visit_type="门诊",
                              total_cost=3200.0, reimbursed_amount=2100.0))
         await db.commit()

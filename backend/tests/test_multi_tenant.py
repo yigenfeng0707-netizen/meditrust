@@ -44,10 +44,10 @@ async def client(monkeypatch):
     async with session_factory() as session:
         session.add(Hospital(id=1, name="附一院", code="wz-fy"))
         session.add(Hospital(id=2, name="县医院", code="wz-x"))
-        session.add(User(id=1, name="A院管理员", age=40, gender="女", city="温州",
+        session.add(User(id=1, name="A院管理员", age=40, gender="女", city="北京",
                          insurance_type="职工医保", employee_status="在职",
                          role="hospital_admin", hospital_id=1))
-        session.add(User(id=2, name="B院管理员", age=42, gender="男", city="温州",
+        session.add(User(id=2, name="B院管理员", age=42, gender="男", city="北京",
                          insurance_type="职工医保", employee_status="在职",
                          role="hospital_admin", hospital_id=2))
         session.add(User(id=3, name="运营员", age=35, gender="女", city="杭州",

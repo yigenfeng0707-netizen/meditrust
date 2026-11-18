@@ -1,87 +1,122 @@
-# 瓯医数链 OuMedTrust
+# 医数可信 MediTrust
 
-> 医疗数据要素可信流通平台 —— **第二届全球技术创新大赛 · AI+医疗专题赛（赛道二）** 参赛项目
+> 医疗数据要素可信流通平台
 > 让医疗数据「**可用不可见、可控可计量**」
+
+HICOOL 2027 全球创业者峰会暨创业大赛 · **本土组 / 创客期 / 个人参赛** · 赛道：软件和信息服务/科技服务
+
+---
+
+## 一句话价值
+
+医院之间数据不能出院、不敢共享，导致专病模型只能在小样本上训练；保险公司和健康服务方又拿不到合规的医学证据。
+本平台用**联邦学习 + 差分隐私 + 可验证审计链**把"数据协作"变成可度量、可审计、可计量的工程能力，并在其上承载 9 个医疗 AI 应用，形成"1 个可信数据底座 + N 个应用生态"。
 
 ## 项目定位
 
-**1 个可信医疗数据底座 + N 个医疗 AI 应用生态**：
-
-- **底座（真实现）**：三家医院联邦学习协作（数据不出院）→ 差分隐私 → 审计存证链 → 数据产品流通 → 监管合规
-- **应用生态**：泛癌卫士（Oncoformer 泛癌预测，温附医 Cell 2026 模型）、影像卫士（医师在环）、脑电卫士、档案管家、政策参谋、权益管家等 9 个医疗智能体，作为数据产品的消费方与民生价值出口
+- **底座（真实实现）**：多家医院联邦学习协作（数据不出院）→ 差分隐私（形式化 ε/δ 隐私预算）→ 审计存证链（RFC 3161 外部锚定）→ 数据产品流通 → 监管合规
+- **应用生态**：泛癌卫士（基于公开发表的 Oncoformer 泛癌模型，Cell 2026）、影像卫士（医师在环）、脑电卫士、档案管家、政策参谋、权益管家等 9 个医疗智能体，作为数据产品的消费方与民生价值出口
 
 ## 核心模块
 
 ```
 backend/
-├── app/services/federated/    # ⭐ 联邦学习引擎（自研，纯CPU）
-│   ├── data_generator.py      #   3家异构模拟医院合成EHR（阳性率~22%，贴近流行病学）
-│   └── engine.py              #   FedAvg + 差分隐私(DP-FedAvg) + 联邦统计
-├── app/routers/federation.py  #   联邦任务API + 审计存证链(sha256串联)
-├── app/services/orchestrator  #   多智能体编排（9个医疗Agent）
+├── app/services/federated/    # ⭐ 联邦学习引擎（自研，纯 CPU）
+│   ├── data_generator.py      #   3 家异构模拟医院合成 EHR（阳性率 ~22%，贴近流行病学）
+│   └── engine.py              #   FedAvg + 差分隐私（DP-FedAvg）+ 联邦统计
+├── app/services/privacy_accountant.py  # RDP 矩会计，输出形式化 (ε, δ) 隐私预算报告
+├── app/routers/federation.py  #   联邦任务 API + 审计存证链（sha256 串联）
+├── app/services/chain_anchor.py        # 双链链尖合并 + RFC 3161 可信时间戳外部锚定
+├── backend/node_agent/        #   医院侧节点 Agent（Docker 单容器 + mTLS + 参数加密上行）
+├── app/services/orchestrator.py        # 多智能体编排（9 个医疗 Agent）
 └── ...                        #   影像/脑电/档案/政策/报销等业务域
 frontend/src/app/federation/   # ⭐ 联邦协作网络看板（核心演示页）
 ```
 
-## 快速启动（比赛现场轻量模式，无 Docker 依赖）
+## 技术亮点（均可现场验证）
 
-```bash
-# 后端（端口 8100，本机 8000 被系统占用）
-cd backend
-python -m venv .venv && .venv\Scripts\activate
-pip install -r requirements.txt
-set DEMO_OFFLINE=true && uvicorn app.main:app --port 8100
+| 能力 | 验证方式 |
+|---|---|
+| 联邦学习追平集中训练 | `GET /api/federation/benchmark`，固定种子可复现 |
+| 差分隐私预算可核算 | 任务 `result.privacy` 输出现形式化 (ε, δ) 报告 |
+| 存证链不可篡改 | 管理端查询链尖与 RFC 3161 时间戳令牌 |
+| 医院侧零原始数据出域 | Node Agent 演练记录（`docs/联邦节点演练记录.md`） |
+| 恶意参数可拦截 | 余弦相似度检测，422 拒绝且不落库 |
+| 多租户隔离 | 医院级租户，跨租户访问 403 / 非本院任务 404 |
 
-# 前端
-cd frontend
-pnpm install && pnpm dev   # .env.local 已指向 http://localhost:8100
-```
-
-## 实验基准（种子固定可复现，启动后 GET /api/federation/benchmark）
+## 实验基准（种子固定可复现）
 
 | 方案 | 全局测试 AUC |
 |------|-------------|
 | 三甲医院本地模型 | 0.7013 |
-| 县医院本地模型 | 0.6994 |
-| 社区中心本地模型 | 0.6896 |
+| 区级医院本地模型 | 0.6994 |
+| 社区卫生中心本地模型 | 0.6896 |
 | **联邦学习 FedAvg** | **0.7018** |
-| 联邦+轻噪声差分隐私（σ=0.01） | 0.6922 |
+| 联邦 + 轻噪声差分隐私（σ=0.01） | 0.6922 |
 | 集中训练上界（现实不可行） | 0.7012 |
 
-- 联邦模型 **追平集中训练上界**（数据不出院即获得大池化效果）
+- 联邦模型**追平集中训练上界**：数据不出院即获得大池化效果
 - 逐院公平性：三家医院全部获益（A +0.003 / B +0.000 / C +0.012）
 - 数据阳性率 21.8%~25.1%，贴近真实心衰 30 天再入院流行病学
-- DP 提供"隐私-效用"分档权衡：轻噪声档仅损失 ~0.01 AUC
+- DP 提供"隐私—效用"分档权衡：轻噪声档仅损失约 0.01 AUC
+- UCI Cleveland 真实患者非 IID 复验：FedAvg AUC 0.9091，高于集中训练上界 0.9019
 
-## Docker 一键部署（生产形态，WSL Ubuntu-D）
+> 以上数据由 `backend/app/services/federated/` 内的合成/公开数据集生成，全部为技术验证口径，不含任何真实患者数据。
+
+## 快速启动（本地轻量模式，无 Docker 依赖）
 
 ```bash
-./scripts/wsl-stack.sh up    # postgres(5433) + redis + chromadb + 后端(8100) + 前端(3000)
+# 后端（默认 8000；若端口被占用可改 8100）
+cd backend
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+DEMO_OFFLINE=true uvicorn app.main:app --port 8000
+
+# 前端
+cd frontend
+pnpm install
+# 新建 .env.local，写入：NEXT_PUBLIC_API_URL=http://localhost:8000
+pnpm dev
 ```
 
-## 大赛关键信息
+## Docker 一键部署（生产形态）
 
-- 报名截止 **9月20日** → 初筛 9月下旬 → 初赛 9月底 → 决赛 10月中旬（温州鹿城）
-- 报名：https://v.wjx.cn/vm/r8ktpyx.aspx ｜ 咨询：汤老师 18314853376
-- 核心团队（报名口径）：队长冯亦根（总体架构 / AI 研发 / 商务落地）+ 核心高管庞晓燕（邵逸夫医院工程师 · 医疗信息化）；其余为非核心团队成员
+```bash
+docker compose --profile prod up -d --build
+# postgres + redis + chromadb + 后端(8000) + 前端(3000)
+# 监控：docker compose --profile monitoring up -d（Prometheus 9090 / Grafana 3001）
+```
 
-## 路线图
+## 合规与知识产权
 
-### 比赛阶段（已完成）
+- **软件著作权 3 件**：平台、病历智能治理系统、联邦学习协作引擎（个人名义申请，登记文本见 `docs/软著申请/`）
+- **发明专利 1 件**：申请中
+- **数据分类分级**：GB/T 39725-2020 × GB/T 43697-2024 双框架，字段级台账覆盖 25 张表，CI 强制校验
+- **个人信息保护影响评估（PIA）**：已出具报告，待外部律师双审
+- **等保三级（代码侧）**：审计留存 180 天归档、敏感字段 AES-256-GCM 加密、登录失败指数退避锁定、TLS 1.3 反代模板
+- **测试**：625 项自动化测试全绿
 
-- [x] 联邦学习引擎 + 基准实验（可复现数字）
-- [x] 平台底座（FastAPI + Next.js，含 9 医疗智能体生态）
-- [x] 联邦协作看板页 + 审计存证链
-- [x] AI 病历治理 Copilot（本地 Qwen / 云端 LLM 双模：结构化 + PHI 脱敏）
-- [x] 数据产品目录 + 授权交易闭环（含收益分成）+ 监管看板
-- [x] UCI 真实数据集复验（AUC 0.9091 追平集中训练上界）
-- [x] 魔搭创空间云端部署 + 5 分钟保活 + 三段备用演示视频
-- [x] 新 BP（赛道二叙事）+ 路演 PPT + 答辩 QA 预案 + 软著×3 材料
-- [x] 正式参赛片重渲染（10/11）：AI 素材去"AI生成"水印 + 核心团队 2 人口径成员卡，4K60fps 4分38秒；1080p 10.9MB 提交版
+## 参赛与文档
 
-### 落地阶段（进行中，见 `docs/生产化改造计划.md`）
+完整索引见 [`docs/hicool/README.md`](docs/hicool/README.md)。
 
-- [ ] P0 安全合规：~~生产鉴权（JWT+RBAC）~~ ✅（双模鉴权 + 五角色 RBAC）；~~等保三级整改（代码侧）~~ ✅（审计留存 180 天归档 + 敏感字段 AES-256-GCM 存储加密 + 登录失败指数退避锁定 + SQLite 在线备份脚本 + 安全响应头/TLS 1.3 反代模板）；~~数据分类分级制度~~ ✅（[管理办法](docs/数据分类分级管理办法.md)：GB/T 39725×GB/T 43697 双框架 + 字段级台账 `app/data_classification.py` 25 表 100% 覆盖 CI 硬校验）；PIA 评估双审签署（外部）、等保测评初测（外部）；625 测试全绿
-- [ ] P1 联邦真实部署：~~医院侧节点程序~~ ✅（[Node Agent 独立包](backend/node_agent/)：Docker 单容器 + 本地训练 + AES-GCM 参数加密上行 + 平台 Coordinator（FedAvg 聚合/节点鉴权/存证链），16 项测试全绿，[部署与抓包演练方案](docs/联邦节点部署与演练方案.md)）；~~节点认证与传输安全（mTLS/密钥轮换）~~ ✅（enc2 信封多版本密钥环 + [轮换脚本](backend/scripts/rotate_federation_key.py)（泄露后历史密文永久不可解）+ nginx mTLS 模板与证书一键签发，18 项安全测试含 socketpair 真实握手中间人拒绝验证）；~~断点续训与容错~~ ✅（恶意参数余弦检测 422 拒绝不落库 + 任务 pause/resume 断点续训（final_auc 与不间断一致）+ last_seen 存活可见性/任务 progress，6 项容错测试，[拔节点演练步骤](docs/联邦节点部署与演练方案.md)）；~~正式隐私预算核算~~ ✅（零依赖 RDP 矩会计 + 任务 result.privacy 形式化 (ε, δ) 报告，8 项测试含已知值对照与集成互验）；双机实操演练、内部安全评审待办
-- [ ] P2 平台生产化：~~PostgreSQL 迁移~~ ✅（[Alembic 迁移体系](backend/migrations/)：baseline 全量表 + 连接串统一读 DATABASE_URL，SQLite 开发/PG 生产同一套脚本，迁移幂等与 metadata 一致性测试，docker PG16 实测 + 应用读写冒烟通过，`cd backend && python -m alembic upgrade head`）；监控告警（[deploy/monitoring](deploy/monitoring/)：Prometheus 抓取 + 告警规则 + Grafana 看板，compose `--profile monitoring`）；~~多租户~~ ✅（医院级租户隔离：hospitals 租户表 + users/nodes/jobs.hospital_id 归属（增量迁移 b7d2e8f4a1c9）+ token 签名 payload 绑定租户（向后兼容旧格式）+ 管理面租户守卫——hospital_admin 列表 scope 过滤/跨租户写 403/非本院任务 404 隐藏 + 医院租户 CRUD（超管）+ 计费计量日报 `tenant_usage_daily`（federated_jobs/node_updates 同事务 upsert）+ `/api/admin/tenants/usage` 报表，10 项测试覆盖"租户 A 无法访问租户 B 任何资源"与计量精确一致）；~~存证链外部锚定~~ ✅（[chain_anchor.py](backend/app/services/chain_anchor.py)：联邦+交易双链尖合并 → RFC 3161 可信时间戳（零依赖 DER 编码，freetsa.org 默认）+ [定时锚定调度器](backend/app/services/anchor_scheduler.py)（每日，TSA 不可达降级 offline 留痕可补锚）+ 管理端锚定/令牌查询与公开视图（不泄露令牌），12 项测试全绿；司法鉴定效力意见属外部待办）；~~LLM 服务生产化~~ ✅（[压测+生产化报告](docs/LLM并发压测报告.md)：全局并发限流 8 路覆盖主备/视觉通道（`LLM_MAX_CONCURRENCY`）+ Chroma ONNX 启动预热 + 病历结构化准确率评估集 200 条标注对照——实测 99.94%（验收 ≥95%），评估集生成器/评分模块/评测脚本可复现）；双机演练、等保测评、内部评审待办
-- [ ] P3 商业化：计费对账、数据交易所挂牌、软著受理 + 专利
+| 文档 | 内容 |
+|---|---|
+| `docs/hicool/00-参赛策略.md` | 赛道选择、评委逻辑、竞争分析 |
+| `docs/hicool/01-资格自查表.md` | 参赛资格逐条自查与股权方案 |
+| `docs/hicool/02-BP-HICOOL版.md` | 商业计划书（含市场规模测算与融资计划） |
+| `docs/hicool/03-北京落地规划书.md` | 北京经开区落地路径 |
+| `docs/hicool/04-知识产权与尽调材料包.md` | 知识产权清单、职务发明处置、尽调材料 |
+| `docs/hicool/05-路演脚本7分钟.md` | 赛区赛路演稿与时间控制卡 |
+| `docs/hicool/06-路演脚本10分钟.md` | 复赛决赛路演稿与现场演示环节 |
+| `docs/hicool/07-答辩QA预案.md` | 12 个必答题 + 6 个陷阱题 |
+| `docs/hicool/08-一页纸.md` | 评委速览单页 |
+| `docs/hicool/09-报名表填写草稿.md` | 报名字段记录 |
+
+> 项目演进：本平台早期版本曾参加其他区域性创新创业赛事并完成第三方评审验证；HICOOL 为本项目当前主攻赛事。相关历史材料保留在 `docs/` 内以备尽调追溯。
+
+## 目录说明
+
+- `docs/`：商业计划、合规制度、软著材料、演练记录（历史材料原样保留）
+- `scripts/`：数据生成、软著材料构建、演示视频与图表生成工具
+- `deploy/`：魔搭创空间、TLS/mTLS、Prometheus/Grafana 部署配置
