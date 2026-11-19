@@ -4,6 +4,11 @@
 # 使用方式：
 #   开发模式：docker compose --profile dev up
 #   生产模式：docker compose --profile prod up -d
+#
+# 网络隔离（P2 运维加固）：
+#   - meditrust-edge：对外暴露的服务（前端）
+#   - meditrust-internal：后端 + 数据层，postgres/redis/chromadb
+#     不映射宿主机端口，仅容器间可达（等保三级"边界防护"）
 # ============================================================
 
 services:
@@ -47,6 +52,12 @@ services:
       start_period: 40s
     volumes:
       - ./backend:/app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-edge, meditrust-internal]
     profiles: ["dev"]
 
   backend-prod:
@@ -57,7 +68,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-yibao}:${POSTGRES_PASSWORD:-yibao123}@postgres:5432/${POSTGRES_DB:-yibao}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-yibao}:${POSTGRES_PASSWORD:?生产模式必须设置 POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-yibao}
       - REDIS_URL=redis://redis:6379
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://aiping.cn/api/v1}
@@ -90,6 +101,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+        reservations:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-edge, meditrust-internal]
     profiles: ["prod"]
 
   # ============================================================
@@ -107,6 +131,12 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-edge]
     profiles: ["dev"]
 
   frontend-prod:
@@ -121,10 +151,21 @@ services:
     depends_on:
       - backend-prod
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-edge]
     profiles: ["prod"]
 
   # ============================================================
-  # PostgreSQL（生产数据库）
+  # PostgreSQL（生产数据库；仅 meditrust-internal 可达，不映射宿主机端口）
   # ============================================================
   postgres:
     image: postgres:16-alpine
@@ -133,8 +174,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-yibao}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-yibao123}
       POSTGRES_DB: ${POSTGRES_DB:-yibao}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -144,15 +183,24 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-internal]
 
   # ============================================================
-  # Redis（缓存/会话）
+  # Redis（缓存/会话；仅 meditrust-internal 可达，不映射宿主机端口）
   # ============================================================
   redis:
     image: redis:7-alpine
     container_name: yibao-redis
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
@@ -162,18 +210,38 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-internal]
 
   # ============================================================
-  # ChromaDB（向量库，可选）
+  # ChromaDB（向量库，可选；仅 meditrust-internal 可达）
   # ============================================================
   chromadb:
     image: chromadb/chroma:latest
     container_name: yibao-chromadb
-    ports:
-      - "${CHROMA_PORT:-8001}:8000"
     volumes:
       - chroma_data:/chroma/chroma
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-internal]
     profiles: ["dev", "prod"]
 
   # ============================================================
@@ -189,6 +257,12 @@ services:
       - ./deploy/monitoring/alert-rules.yml:/etc/prometheus/rules/alert-rules.yml:ro
       - prometheus_data:/prometheus
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-internal]
     profiles: ["monitoring"]
 
   grafana:
@@ -197,15 +271,21 @@ services:
     ports:
       - "${GRAFANA_PORT:-3001}:3000"
     environment:
-      # 演示环境弱口令，生产请改环境变量；首次登录后立即修改
+      # 生产必须设置 GRAFANA_PASSWORD 环境变量（出厂默认口令会被拦截）
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-oumed2026}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:?启动监控栈必须设置 GRAFANA_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./deploy/monitoring/grafana-dashboard.json:/var/lib/grafana/dashboards/oumed-trust.json:ro
     depends_on:
       - prometheus
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks: [meditrust-internal]
     profiles: ["monitoring"]
 
 volumes:
@@ -214,3 +294,12 @@ volumes:
   chroma_data:
   prometheus_data:
   grafana_data:
+
+networks:
+  # 边缘网络：对外服务（前端、需要被前端/浏览器访问的后端）
+  meditrust-edge:
+    driver: bridge
+  # 内部网络：后端 ↔ 数据层（postgres/redis/chromadb/监控），不暴露宿主机端口
+  meditrust-internal:
+    driver: bridge
+    internal: true

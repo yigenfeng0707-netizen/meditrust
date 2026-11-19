@@ -10,7 +10,11 @@ scrape_configs:
   - job_name: oumed-trust-backend
     metrics_path: /metrics
     static_configs:
-      # dev profile 用 backend；prod profile 改为 backend-prod
+      # dev profile 用 backend，prod profile 用 backend-prod（同一 job 内双目标；
+      # 未启用的那台在 Prometheus 中显示为 down，不影响另一台采集）
       - targets: ["backend:8000"]
         labels:
           env: dev
+      - targets: ["backend-prod:8000"]
+        labels:
+          env: prod

@@ -32,11 +32,24 @@ ENV NODE_ENV=production
 # 运行时由 docker-compose 注入真实后端地址
 ENV NEXT_PUBLIC_API_URL=http://localhost:8000
 
+# tini 处理 PID 1 信号转发，docker stop 时 Next server 优雅退出（P2 容器化加固）
+RUN apk add --no-cache tini \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S nextjs -u 1001 -G nodejs
+
 # Next standalone 产物已内嵌所需 node_modules
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# 非 root 用户运行
+USER nextjs
 
 EXPOSE 3000
 
+# 容器健康检查（K8s/compose 就绪探针用）
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD wget -qO- http://localhost:3000/ || exit 1
+
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "server.js"]

@@ -27,9 +27,9 @@ RUN pip install --prefix=/install -r requirements.txt
 FROM python:3.11-slim AS runtime
 
 # 运行时环境变量
+# 依赖经 builder 的 --prefix=/install 拷入 /usr/local（bin/lib 均在标准 PATH 中）
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/app/venv/bin:$PATH"
+    PYTHONUNBUFFERED=1
 
 # 安装运行时依赖（libpq for asyncpg）
 RUN apt-get update && apt-get install -y --no-install-recommends \
