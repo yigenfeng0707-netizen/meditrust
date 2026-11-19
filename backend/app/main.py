@@ -41,6 +41,11 @@ from app.services import orchestrator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 结构化日志最先初始化：后续启动/校验日志均为 JSON + 请求 ID 可追踪
+    from app.logging_config import setup_logging
+
+    setup_logging()
+
     # 生产模式配置校验（fail-closed）：DEMO_MODE=false 时密钥/口令/CORS 不合格 → 拒绝启动。
     # 演示模式（DEMO_MODE=true）恒通过，保证路演/Demo 零摩擦。
     from app.config import production_config_problems
@@ -123,13 +128,21 @@ async def security_headers_middleware(request, call_next):
 
 @app.middleware("http")
 async def metrics_middleware(request, call_next):
-    """请求埋点：按路由模板+状态码计数并记录耗时（/metrics 自身不计数）。"""
+    """请求埋点 + 请求 ID：按路由模板+状态码计数并记录耗时（/metrics 自身不计数）。
+
+    请求 ID（P3 结构化日志配套）：优先透传客户端 X-Request-ID，否则生成；
+    写入 contextvars 供本请求内所有日志/错误携带，并回写响应头。
+    """
+    from app.logging_config import set_request_id
+
+    rid = set_request_id(request.headers.get("X-Request-ID") or None)
     start = time.perf_counter()
     response = await call_next(request)
     if request.url.path not in ("/metrics", "/api/ops/metrics"):
         route_obj = request.scope.get("route")
         route = getattr(route_obj, "path", request.url.path) if route_obj else "unmatched"
         app_metrics.observe_request(route, response.status_code, time.perf_counter() - start)
+    response.headers["X-Request-ID"] = rid
     return response
 
 
@@ -145,6 +158,35 @@ async def prometheus_metrics():
         app_metrics.render_prometheus(demo_mode=settings.DEMO_MODE),
         media_type="text/plain; version=0.0.4",
     )
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    """全局异常处理器（P3）：未处理异常 → 500 JSON，不向前端泄露堆栈/内部信息。
+
+    结构化日志记录完整堆栈（含请求 ID），响应只给通用提示 + 请求 ID
+    供用户报障、运维按 rid 检索日志。
+    """
+    import logging
+
+    from fastapi.responses import JSONResponse
+
+    from app.logging_config import get_request_id
+
+    logging.getLogger("app.main").exception(
+        "未处理异常", extra={
+            "path": request.url.path,
+            "method": request.method,
+            "request_id": get_request_id(),
+        }
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "服务器内部错误，请稍后重试；如需报障请提供请求 ID",
+            "request_id": get_request_id(),
+        },
+    )
+
 
 app.include_router(auth.router)
 app.include_router(admin.router)

@@ -21,10 +21,11 @@ if config.get_main_option("sqlalchemy.url") in (None, "", "driver://user:pass@lo
 
     config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL", settings.DATABASE_URL))
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# 应用日志由 app/logging_config.py 统一管理（JSON + 请求 ID），
+# 不再调用 fileConfig —— 该函数会用 alembic.ini 的 [loggers]/[handlers]
+# 重置根日志配置，覆盖应用的结构化日志初始化。
+# if config.config_file_name is not None:
+#     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
