@@ -16,7 +16,9 @@
 
 import asyncio
 import hashlib
+import hmac
 import logging
+import time
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -45,9 +47,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin", tags=["管理后台"])
 
-# 默认管理员账号（生产环境务必通过环境变量/ .env 覆盖）
+# 默认管理员账号（演示模式兜底；生产模式必须通过环境变量/.env 配置，
+# 且启动校验会拒绝使用出厂默认口令启动——见 app.config.production_config_problems）
 default_admin_username = "admin"
 default_admin_password = "医数可信@2026"
+
+# 超管 token 有效期（秒）：24h，与登录响应 expires_in 对齐
+_ADMIN_TOKEN_TTL = 86400
 
 
 def _admin_credentials() -> tuple[str, str]:
@@ -59,9 +65,36 @@ def _admin_credentials() -> tuple[str, str]:
 
 
 def _issue_admin_token(username: str) -> str:
-    """无状态 token：用户名 + 密钥的哈希（重启后仍有效，改密/换密钥即失效）。"""
-    raw = f"admin|{username}|{settings.YIBAO_ADMIN_SECRET}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    """无状态超管 token：HMAC-SHA256 签名 payload=admin|username|exp，24h 过期。
+
+    格式：exp|sig（sig=HMAC(payload, YIBAO_ADMIN_SECRET)[:32]）。换密钥或过期即失效，
+    重启不影响（无状态）。旧版静态 sha256 token 不再被接受（不可过期、可从源码推算）。
+    """
+    exp = int(time.time()) + _ADMIN_TOKEN_TTL
+    payload = f"admin|{username}|{exp}"
+    sig = hmac.new(
+        settings.YIBAO_ADMIN_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
+    ).hexdigest()[:32]
+    return f"{exp}|{sig}"
+
+
+def _verify_admin_token(token: str | None) -> bool:
+    """校验超管 token：格式合法、未过期、签名匹配（常量时间比较）。"""
+    if not token or "|" not in token:
+        return False
+    exp_s, sig = token.rsplit("|", 1)
+    try:
+        exp = int(exp_s)
+    except ValueError:
+        return False
+    if exp < time.time():
+        return False
+    username, _ = _admin_credentials()
+    payload = f"admin|{username}|{exp}"
+    expected = hmac.new(
+        settings.YIBAO_ADMIN_SECRET.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
+    ).hexdigest()[:32]
+    return hmac.compare_digest(sig, expected)
 
 
 class AdminLoginRequest(BaseModel):
@@ -70,16 +103,14 @@ class AdminLoginRequest(BaseModel):
 
 
 async def require_admin(x_admin_token: str | None = Header(None, alias="X-Admin-Token")) -> str:
-    """管理员鉴权依赖：校验 X-Admin-Token。"""
-    username, _ = _admin_credentials()
-    expected = _issue_admin_token(username)
-    if not x_admin_token or x_admin_token != expected:
+    """管理员鉴权依赖：校验 X-Admin-Token（HMAC 签名 + 24h 过期）。"""
+    if not _verify_admin_token(x_admin_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="管理员未登录或 token 失效",
+            detail="管理员未登录或 token 已失效/过期，请重新登录",
             headers={"WWW-Authenticate": "AdminToken"},
         )
-    return username
+    return _admin_credentials()[0]
 
 
 @router.post("/login")
@@ -98,7 +129,19 @@ async def admin_login(payload: AdminLoginRequest):
                 detail=f"登录失败次数过多，账号已临时锁定，请 {remain} 秒后重试",
             )
     username, password = _admin_credentials()
-    if payload.username != username or payload.password != password:
+    # 生产模式口令守卫：空口令或出厂默认口令一律拒绝登录
+    # （启动校验 production_config_problems 已阻止以默认口令启动，此处为纵深防御）
+    if not settings.DEMO_MODE and (not password or password == default_admin_password):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="生产环境未配置独立管理员口令（ADMIN_PASSWORD 仍为空或出厂默认值），"
+                   "请联系平台运维配置后再登录",
+        )
+    # 常量时间比较：避免口令/用户名比对的时序侧信道（非 ASCII 密码须按字节比较）
+    if not (
+        hmac.compare_digest(payload.username.encode("utf-8"), username.encode("utf-8"))
+        and hmac.compare_digest(payload.password.encode("utf-8"), password.encode("utf-8"))
+    ):
         metrics.observe_admin_login_failure()  # 监控告警：撞库信号（指标）
         if not settings.DEMO_MODE:
             login_guard.record_failure(guard_key)

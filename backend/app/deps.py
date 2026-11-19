@@ -25,14 +25,13 @@ logger = logging.getLogger(__name__)
 
 
 def _valid_admin_token(token: str | None) -> bool:
-    """管理员 token 校验（与 admin.require_admin 同口径）。"""
+    """管理员 token 校验（与 admin.require_admin 同口径：HMAC 签名 + 24h 过期）。"""
     if not token:
         return False
     # 延迟导入避免模块加载顺序问题（admin 不依赖 deps，无环）
-    from app.routers.admin import _admin_credentials, _issue_admin_token
+    from app.routers.admin import _verify_admin_token
 
-    username, _ = _admin_credentials()
-    return token == _issue_admin_token(username)
+    return _verify_admin_token(token)
 
 
 async def _log_denial(

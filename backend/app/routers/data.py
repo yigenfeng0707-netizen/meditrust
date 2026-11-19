@@ -5,8 +5,9 @@
 - GET  /api/data/catalog   湖仓数据资产目录（仓层表 + 湖层文件 + 血缘）
 - GET  /api/data/quality   数据质量报告与血缘说明
 
-安全边界：只允许只读查询，SQL 经引擎安全校验（表白名单 + 强制 LIMIT），
-个人数据访问的授权校验由安全守门（/api/security）统一管理。
+安全边界：只允许只读查询，SQL 经引擎安全校验（表白名单 + 强制 LIMIT）；
+个人数据实行资源级授权——普通用户只能查到自己的记录（user_id 作用域强制），
+特权角色（医生/监管/运营/超管）方可跨用户统计（数据产品消费方）。
 """
 
 import asyncio
@@ -16,7 +17,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.deps import SessionDep
+from app.deps import get_current_user
 from app.schemas import DataQueryRequest
 from app.services import orchestrator
 from app.services.data_lake import engine
@@ -26,15 +27,28 @@ router = APIRouter(prefix="/api/data", tags=["数据管家"])
 
 
 @router.post("/query")
-async def data_query(request: DataQueryRequest, db: AsyncSession = Depends(get_db), _session: str = SessionDep):
+async def data_query(
+    request: DataQueryRequest,
+    db: AsyncSession = Depends(get_db),
+    identity: dict = Depends(get_current_user),
+):
     """智能数据查询：自然语言问题 → 模板/LLM 生成只读 SQL → 执行并返回结构化结果。
 
     复用编排器的 LLM 实例（可用时走 NL2SQL，否则模板降级），
     45s 超时保护，超时降级为目录摘要。
+    个人数据作用域：调用者身份（get_current_user）传入引擎，普通用户
+    涉及个人表的查询被强制限定为本人记录（user_id 注入或拒绝复杂 SQL）。
     """
     try:
         result = await asyncio.wait_for(
-            engine.smart_query(db, request.question, llm=orchestrator._llm, user_id=request.user_id),
+            engine.smart_query(
+                db,
+                request.question,
+                llm=orchestrator._llm,
+                user_id=request.user_id,
+                caller_uid=identity.get("user_id"),
+                caller_role=identity.get("role"),
+            ),
             timeout=45.0,
         )
     except TimeoutError:

@@ -1664,12 +1664,28 @@ class Orchestrator:
 
         自然语言问题 → 预置模板/LLM NL2SQL → 只读执行 → 结构化回答（SQL 透明）。
         db 可注入（测试用）；默认自行开 session。
+
+        数据作用域（P0 越权修复）：聊天入口的 user_id 在生产模式下即调用者本人
+        （聊天端点由 scoped_user_id 强制 token 匹配），将其解析为 caller_uid 传入引擎，
+        普通用户涉及个人表的查询被强制限定为本人记录。演示模式（DEMO_MODE=true）
+        聊天身份为 user-switcher 演示用户、非认证身份，不启用强制。
         """
         from app.database import async_session
         from app.services.data_lake import engine as data_engine
 
+        from app.config import settings
+
+        # user_id 形如 "user_001" → 数值 uid（解析失败或演示模式则不启用作用域强制）
+        caller_uid: int | None = None
+        if user_id and not settings.DEMO_MODE:
+            _suffix = user_id.rsplit("_", 1)[-1]
+            if _suffix.isdigit():
+                caller_uid = int(_suffix)
+
         async def _run(session) -> dict:
-            return await data_engine.smart_query(session, message, llm=self._llm, user_id=user_id)
+            return await data_engine.smart_query(
+                session, message, llm=self._llm, user_id=user_id, caller_uid=caller_uid
+            )
 
         if db is not None:
             result = await _run(db)

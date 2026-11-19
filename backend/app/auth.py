@@ -19,6 +19,14 @@ import time
 
 from fastapi import Header, HTTPException, status
 
+from app.config import settings
+
+
+def _looks_like_placeholder(value: str) -> bool:
+    """会话密钥是否为 .env.example 未替换的占位符（与 config 占位符口径一致）。"""
+    lowered = (value or "").strip().lower()
+    return any(tok in lowered for tok in ("please-change", "change-this", "your-", "-here", "replace-me"))
+
 logger = logging.getLogger(__name__)
 
 # 从环境变量读取 API Key（未配置则不启用鉴权，保证 Demo 流畅）
@@ -91,7 +99,22 @@ def verify_password(password: str, stored: str | None) -> bool:
 # ------------------------------------------------------------------
 
 def _session_secret() -> str:
-    return os.getenv("YIBAO_SESSION_SECRET", "demo")
+    """会话 token 的 HMAC 签名密钥（fail-closed）。
+
+    - 已配置且非出厂默认值：使用配置值（环境变量优先，兼顾 .env 部署）；
+    - 生产模式（DEMO_MODE=false）下为空/出厂默认值：抛 RuntimeError 拒绝签发与校验
+      （app.main 启动校验会先一步拒绝启动，此处为纵深防御）；
+    - 演示模式：回落 "demo"（保持向后兼容，仅用于路演/Demo 会话）。
+    """
+    secret = os.getenv("YIBAO_SESSION_SECRET", "") or settings.YIBAO_SESSION_SECRET
+    if secret and secret not in ("", "please-change-this", "demo") and not _looks_like_placeholder(secret):
+        return secret
+    if not settings.DEMO_MODE:
+        raise RuntimeError(
+            "生产模式（DEMO_MODE=false）必须配置 YIBAO_SESSION_SECRET："
+            "当前为空或仍为出厂默认值/占位符，拒绝签发/校验会话 token"
+        )
+    return "demo"
 
 
 def issue_user_token(user_id: int, ttl: int = USER_TOKEN_TTL, role: str = "member",
@@ -155,15 +178,10 @@ def parse_user_token(token: str | None) -> int | None:
 
 
 # ------------------------------------------------------------------
-# 兼容旧接口（main.py Demo 登录等历史调用）
+# 兼容旧接口：仅保留签发能力，供未迁移的 Demo 登录路径使用
 # ------------------------------------------------------------------
 
 def generate_session_token(user_id: str) -> str:
     """生成会话 token（简易版：user_id + 时间戳的哈希）"""
     raw = f"{user_id}|{time.time()}|{_session_secret()}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
-
-
-def verify_session_token(token: str) -> bool:
-    """验证会话 token（Demo 阶段：非空即通过）"""
-    return bool(token) and len(token) >= 16

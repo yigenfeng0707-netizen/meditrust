@@ -236,7 +236,9 @@ jobs:
           if [ -n "${ALIPAY_APP_PRIVATE_KEY:-}" ]; then sync_kv secrets ALIPAY_APP_PRIVATE_KEY "${ALIPAY_APP_PRIVATE_KEY}"; fi
           if [ -n "${ALIPAY_PUBLIC_KEY:-}" ]; then sync_kv secrets ALIPAY_PUBLIC_KEY "${ALIPAY_PUBLIC_KEY}"; fi
 
-          # 非敏感配置 → 明文 variables（config.py 默认值已正确，此处同步防止平台残留旧值覆盖）
+          # 非敏感配置 → 明文 variables（线上 Demo 显式声明演示模式：
+          # 代码默认已改为 fail-closed 生产模式，不显式设置 DEMO_MODE=true 会拒绝启动）
+          sync_kv variables DEMO_MODE "true"
           sync_kv variables DEMO_OFFLINE "false"
           sync_kv variables ADMIN_USERNAME "admin"
           sync_kv variables LLM_BASE_URL "https://aiping.cn/api/v1"

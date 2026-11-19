@@ -160,6 +160,74 @@ _FORBIDDEN_TOKENS = [
     "REPLACE", "ATTACH", "DETACH", "PRAGMA", "GRANT", "REVOKE", "VACUUM", "REINDEX",
 ]
 
+# 含个人数据的表：非特权角色（member=患者本人）查询这些表时，
+# SQL 必须被强制注入 user_id = 调用者 过滤（_enforce_personal_scope）。
+# users 表单独按全表拒绝处理（其主键是 id 而非 user_id，且聚合统计语义不适用个人作用域）。
+PERSONAL_TABLES = {
+    "medical_records", "medication_records", "insurance_records",
+    "eeg_records", "imaging_records", "body_records", "data_authorizations",
+}
+
+# 可跨用户查询的特权角色（数据产品消费方：医生/医院管理员/监管/平台运营/超管）
+ELEVATED_ROLES = {"doctor", "hospital_admin", "regulator", "operator", "super_admin"}
+
+
+def _enforce_personal_scope(sql: str, caller_uid: int) -> tuple[bool, str, str]:
+    """个人数据作用域强制（P0 越权修复）：对含个人表的 SQL 注入 user_id 过滤。
+
+    Returns:
+        (ok, scoped_sql, reason) — ok=False 时拒绝执行并返回原因。
+        仅处理"简单结构"SQL（无 WHERE、无子查询/括号）：SELECT ... FROM personal_table
+        ... [GROUP BY|ORDER BY|LIMIT]；复杂 SQL 直接拒绝（fail-closed，避免改错语义）。
+    """
+    tables = {t.lower() for t in re.findall(r"(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_]*)", sql.upper())}
+    # users 表（参保人基本信息）：主键是 id 而非 user_id，且聚合统计语义不适用个人作用域
+    # → 非特权角色一律全表拒绝
+    if tables & {"users"}:
+        return (
+            False, "",
+            "查询涉及参保人基本信息表（users），仅管理/监管/医生角色可查询；"
+            "个人视角请改问自己的就医、用药或缴费记录",
+        )
+    personal = tables & PERSONAL_TABLES
+    if not personal:
+        return True, sql, ""  # 不涉及个人表（政策知识库等），放行
+    # JOIN 多表时无法确定 user_id 过滤应作用于哪张表 → 拒绝（fail-closed）
+    if re.search(r"\bJOIN\b", sql, re.IGNORECASE):
+        return (
+            False, "",
+            "查询语句过于复杂（多表 JOIN），无法安全地自动限定为本人数据范围；"
+            "请简化问法，例如\"我的就医费用汇总\"",
+        )
+    if re.search(r"\bWHERE\b", sql, re.IGNORECASE):
+        return (
+            False, "",
+            "查询语句过于复杂（含 WHERE 条件），无法安全地自动限定为本人数据范围；"
+            "请简化问法，例如\"我的就医费用汇总\"",
+        )
+    # 子查询/CTE 检测：(SELECT / FROM ( / WITH ... AS ( —— 列函数 COUNT(*)/SUM(x) 不算
+    if re.search(r"\(\s*SELECT\b", sql, re.IGNORECASE) or re.search(
+        r"(?:FROM|JOIN)\s*\(", sql, re.IGNORECASE
+    ):
+        return (
+            False, "",
+            "查询语句过于复杂（含子查询），无法安全地自动限定为本人数据范围；"
+            "请简化问法，例如\"我的就医费用汇总\"",
+        )
+    if re.match(r"WITH\b", sql.strip(), re.IGNORECASE):
+        return (
+            False, "",
+            "查询语句过于复杂（CTE 语法），无法安全地自动限定为本人数据范围；"
+            "请简化问法，例如\"我的就医费用汇总\"",
+        )
+    uid = int(caller_uid)
+    m = re.search(r"\b(GROUP BY|ORDER BY|LIMIT)\b", sql, re.IGNORECASE)
+    if m:
+        scoped = sql[: m.start()] + f" WHERE user_id = {uid} " + sql[m.start() :]
+    else:
+        scoped = f"{sql} WHERE user_id = {uid}"
+    return True, scoped, ""
+
 
 def validate_sql(sql: str) -> tuple[bool, str, str]:
     """校验并规范化只读 SQL。
@@ -336,11 +404,23 @@ async def catalog(session) -> dict[str, Any]:
     }
 
 
-async def smart_query(session, message: str, llm=None, user_id: str | None = None) -> dict[str, Any]:
+async def smart_query(
+    session,
+    message: str,
+    llm=None,
+    user_id: str | None = None,
+    caller_uid: int | None = None,
+    caller_role: str | None = None,
+) -> dict[str, Any]:
     """智能数据查询：模板匹配（确定性）→ LLM NL2SQL → 目录兜底。
 
     返回结构对齐 DATA_AGENT_PROMPT 的输出格式（answer_summary / query /
     result_table / data_source / quality_notes）。
+
+    数据作用域授权（P0 越权修复）：caller_uid/caller_role 由调用方传入调用者身份——
+    - 特权角色（doctor/hospital_admin/regulator/operator/super_admin）：可跨用户统计（数据产品消费方）；
+    - 普通患者（member）：涉及个人表的查询被强制注入 user_id = caller_uid 过滤，
+      复杂 SQL 直接拒绝（fail-closed）。caller_uid 为 None（演示模式匿名）时不强制。
     """
     message = (message or "").strip()
 
@@ -366,6 +446,25 @@ async def smart_query(session, message: str, llm=None, user_id: str | None = Non
                     logger.warning("LLM 生成 SQL 被安全校验拒绝: %s | SQL: %s", reason, candidate[:200])
         except Exception as e:
             logger.warning("LLM NL2SQL 失败: %s，降级模板", e)
+
+    # 3. 数据作用域强制：非特权调用者 + 涉及个人表 → 注入 user_id 过滤或拒绝
+    scope_filter = None
+    if sql is not None and caller_uid is not None and caller_role not in ELEVATED_ROLES:
+        ok, scoped_sql, reason = _enforce_personal_scope(sql, caller_uid)
+        if not ok:
+            return {
+                "answer_summary": f"已拦截该查询：{reason}。这是个人健康数据的访问边界——"
+                                  "您只能查询自己的记录，如需跨人统计数据请联系统计由管理端进行。",
+                "query": {"natural_language": message, "sql": None, "row_count": 0,
+                          "time_range": "", "filters": [], "source": "blocked",
+                          "blocked_reason": reason},
+                "result_table": {"columns": [], "rows": []},
+                "data_source": {"layer": "warehouse", "datasets": []},
+                "quality_notes": [],
+            }
+        if scoped_sql != sql:
+            scope_filter = f"user_id={caller_uid}"
+            sql = scoped_sql
 
     # 3. 仍无 SQL：返回目录摘要兜底
     if sql is None:
@@ -405,6 +504,12 @@ async def smart_query(session, message: str, llm=None, user_id: str | None = Non
         summary = f"查询完成（{label}），未查询到相关记录。"
     else:
         summary = f"查询完成（{label}），共 {table['row_count']} 条记录，统计口径：{time_range or '当前数据'}。"
+    if scope_filter:
+        summary += "（已按个人数据作用域限定：仅包含您本人的记录）"
+
+    filters: list[str] = [f"user_id={user_id}"] if user_id else []
+    if scope_filter and scope_filter not in filters:
+        filters.append(scope_filter)
 
     return {
         "answer_summary": summary,
@@ -413,7 +518,7 @@ async def smart_query(session, message: str, llm=None, user_id: str | None = Non
             "sql": sql,
             "row_count": table["row_count"],
             "time_range": time_range,
-            "filters": [f"user_id={user_id}"] if user_id else [],
+            "filters": filters,
             "source": source,
         },
         "result_table": table,

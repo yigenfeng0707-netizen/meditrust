@@ -38,9 +38,11 @@ class Settings(BaseSettings):
     DEMO_OFFLINE: bool = False
 
     # 身份作用域开关（P0 鉴权强制）：
-    # true（默认）= 演示模式，业务端点信任 user_id 路径参数（user-switcher 零摩擦）；
-    # false = 生产模式，业务端点强制 X-User-Token 与 user_id 匹配（管理员可代查）。
-    DEMO_MODE: bool = True
+    # false（默认，生产模式）= 业务端点强制 X-User-Token 与 user_id 匹配（管理员可代查）；
+    # true = 演示模式（路演/Demo 环境，user-switcher 零摩擦，业务端点信任 user_id 路径参数）。
+    # 安全原则：fail-closed —— 未显式声明 DEMO_MODE=true 的部署一律按生产模式对待，
+    # 并在启动时校验密钥/口令（见 production_config_problems），不安全配置拒绝启动。
+    DEMO_MODE: bool = False
 
     # 存证链外部锚定：RFC 3161 可信时间戳机构地址（留空 = 仅离线留痕不请求 TSA）
     CHAIN_ANCHOR_TSA_URL: str = "https://freetsa.org/tsr"
@@ -113,3 +115,54 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+# ============================================================
+# 生产模式配置校验（fail-closed）
+# ============================================================
+
+# 出厂默认值清单：生产模式（DEMO_MODE=false）下出现这些值 = 未安全配置
+_DEMO_DEFAULT_ADMIN_PASSWORD = "医数可信@2026"
+_DEMO_DEFAULT_ADMIN_SECRET = "oumed-admin-secret"
+_DEMO_DEFAULT_SESSION_SECRET = "please-change-this"
+
+# 占位符模式：从 .env.example 直接复制未替换的值同样视为未配置
+_PLACEHOLDER_TOKENS = ("please-change", "change-this", "your-", "-here", "replace-me")
+
+
+def _looks_unconfigured(value: str) -> bool:
+    """值是否为空、出厂默认或明显的占位符（如 .env.example 未替换的值）。"""
+    if not value:
+        return True
+    lowered = value.strip().lower()
+    return any(tok in lowered for tok in _PLACEHOLDER_TOKENS)
+
+
+def production_config_problems() -> list[str]:
+    """生产模式配置校验：返回待修复项清单（空列表 = 通过）。
+
+    演示模式（DEMO_MODE=true）恒通过：Demo 环境依赖出厂默认值零摩擦启动；
+    生产模式（DEMO_MODE=false，默认）必须逐项通过，否则 app.main 在 lifespan
+    拒绝启动（详见 main.py），避免"漏配一个 env 即完全敞开"。
+    """
+    if settings.DEMO_MODE:
+        return []
+    problems: list[str] = []
+    if _looks_unconfigured(settings.ADMIN_PASSWORD) or settings.ADMIN_PASSWORD == _DEMO_DEFAULT_ADMIN_PASSWORD:
+        problems.append(
+            "ADMIN_PASSWORD 未配置或仍为出厂默认值/占位符（生产环境必须通过环境变量/.env 设置独立口令）"
+        )
+    if _looks_unconfigured(settings.YIBAO_ADMIN_SECRET) or settings.YIBAO_ADMIN_SECRET == _DEMO_DEFAULT_ADMIN_SECRET:
+        problems.append(
+            "YIBAO_ADMIN_SECRET 未配置或仍为出厂默认值/占位符（超管 token 签发密钥，设置后所有旧 token 失效）"
+        )
+    if _looks_unconfigured(settings.YIBAO_SESSION_SECRET):
+        problems.append(
+            "YIBAO_SESSION_SECRET 未配置或仍为出厂默认值/占位符（用户会话 token 的 HMAC 签名密钥）"
+        )
+    if settings.CORS_ORIGINS.strip() == "*":
+        problems.append(
+            "CORS_ORIGINS 为 *（全域放行），生产环境必须收敛为前端域名白名单（逗号分隔）"
+        )
+    return problems
+

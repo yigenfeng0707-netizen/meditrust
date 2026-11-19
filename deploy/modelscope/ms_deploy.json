@@ -2,6 +2,7 @@
   "sdk_type": "docker",
   "port": 7860,
   "env": {
+    "DEMO_MODE": "true",
     "DEMO_OFFLINE": "false",
     "LLM_API_KEY": "__LLM_API_KEY__",
     "LLM_BASE_URL": "https://llm-uarugoa0rqgduef5.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",

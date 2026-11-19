@@ -41,6 +41,18 @@ from app.services import orchestrator
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 生产模式配置校验（fail-closed）：DEMO_MODE=false 时密钥/口令/CORS 不合格 → 拒绝启动。
+    # 演示模式（DEMO_MODE=true）恒通过，保证路演/Demo 零摩擦。
+    from app.config import production_config_problems
+
+    _problems = production_config_problems()
+    if _problems:
+        raise RuntimeError(
+            "生产模式（DEMO_MODE=false）配置校验失败，拒绝启动：\n  - "
+            + "\n  - ".join(_problems)
+            + "\n请通过环境变量/.env 配置上述项，或显式设置 DEMO_MODE=true 进入演示模式。"
+        )
+
     await init_db()
     await orchestrator.initialize_services()
     # 存证链定时锚定（周期可配；0 = 关闭仅手动锚定）
@@ -66,14 +78,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS 配置：从环境变量读取，默认开放（Demo 模式）
-# 生产环境通过 CORS_ORIGINS 收敛为白名单（逗号分隔）
-_cors_origins_env = os.getenv("CORS_ORIGINS", "*")
-if _cors_origins_env.strip() == "*":
+# CORS 配置：从 Settings（环境变量/.env）读取，默认开放（Demo 模式）
+# 生产环境通过 CORS_ORIGINS 收敛为白名单（逗号分隔），启动校验强制非 *
+_cors_origins_cfg = (settings.CORS_ORIGINS or "*").strip()
+if _cors_origins_cfg == "*":
     _cors_origins = ["*"]
     _cors_credentials = False
 else:
-    _cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    _cors_origins = [o.strip() for o in _cors_origins_cfg.split(",") if o.strip()]
     _cors_credentials = True
 
 app.add_middleware(

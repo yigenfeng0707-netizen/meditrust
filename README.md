@@ -70,7 +70,9 @@ frontend/src/app/federation/   # ⭐ 联邦协作网络看板（核心演示页�
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-DEMO_OFFLINE=true uvicorn app.main:app --port 8000
+# DEMO_MODE=true 显式进入演示/路演模式（默认为生产模式 fail-closed，
+# 未配置独立密钥/口令/CORS 白名单将拒绝启动——见 backend/.env.example）
+DEMO_MODE=true DEMO_OFFLINE=true uvicorn app.main:app --port 8000
 
 # 前端
 cd frontend
@@ -94,7 +96,7 @@ docker compose --profile prod up -d --build
 - **数据分类分级**：GB/T 39725-2020 × GB/T 43697-2024 双框架，字段级台账覆盖 25 张表，CI 强制校验
 - **个人信息保护影响评估（PIA）**：已出具报告，待外部律师双审
 - **等保三级（代码侧）**：审计留存 180 天归档、敏感字段 AES-256-GCM 加密、登录失败指数退避锁定、TLS 1.3 反代模板
-- **测试**：625 项自动化测试全绿
+- **测试**：625 项自动化测试（2026-11-18 本地离线复验：624 passed / 1 skipped，覆盖率 64.73%，门槛 63%）
 
 ## 参赛与文档
 

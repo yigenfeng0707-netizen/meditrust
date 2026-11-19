@@ -71,7 +71,11 @@ services:
       - OCR_API_KEY=${OCR_API_KEY:-}
       - YIBAO_API_KEY=${YIBAO_API_KEY}
       - YIBAO_SESSION_SECRET=${YIBAO_SESSION_SECRET}
-      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      # 生产模式（fail-closed，默认）：以下三项缺失时 compose 直接报错，且后端启动校验也会拒绝
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?生产模式必须设置 ADMIN_PASSWORD}
+      - YIBAO_ADMIN_SECRET=${YIBAO_ADMIN_SECRET:?生产模式必须设置 YIBAO_ADMIN_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:?生产模式必须设置 CORS_ORIGINS 白名单（逗号分隔）}
       - CHROMA_PERSIST_DIR=/app/chroma_data
       - DEMO_OFFLINE=${DEMO_OFFLINE:-false}
     depends_on:

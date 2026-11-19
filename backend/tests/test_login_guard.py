@@ -144,19 +144,32 @@ def test_user_login_lockout_cleared_by_success(client, strict):
     assert login_guard.is_locked("user:aunt@hospital.cn") == 0
 
 
-def test_admin_login_lockout(client, strict):
-    """管理员登录：连续失败 5 次 → 正确口令也 423。"""
+def test_admin_login_lockout(client, strict, monkeypatch):
+    """管理员登录：连续失败 5 次 → 正确口令也 423。
+
+    生产模式拒绝出厂默认口令登录（P0-2），故 strict 模式注入独立测试口令。
+    """
+    monkeypatch.setattr(settings, "ADMIN_PASSWORD", "TestAdmin@2026")
     for _ in range(5):
         r = client.post("/api/admin/login", json={"username": "admin", "password": "错误口令"})
         assert r.status_code == 401
     r = client.post("/api/admin/login", json={"username": "admin",
-                                              "password": settings.ADMIN_PASSWORD})
+                                              "password": "TestAdmin@2026"})
     assert r.status_code == 423
 
     login_guard.clear_all()
     r = client.post("/api/admin/login", json={"username": "admin",
-                                              "password": settings.ADMIN_PASSWORD})
+                                              "password": "TestAdmin@2026"})
     assert r.status_code == 200
+
+
+def test_admin_login_rejects_default_password_in_prod(client, strict):
+    """生产模式守卫：出厂默认口令直接拒绝登录（纵深防御，启动校验之外的运行时门）。"""
+    # strict fixture 未改 ADMIN_PASSWORD → 仍是出厂默认值
+    r = client.post("/api/admin/login", json={"username": "admin",
+                                              "password": settings.ADMIN_PASSWORD})
+    assert r.status_code == 500
+    assert "未配置独立管理员口令" in r.json()["detail"]
 
 
 def test_demo_mode_no_lockout(client):
