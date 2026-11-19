@@ -1,5 +1,6 @@
 // 医数可信 - API 客户端层
 // 优先调用后端 API，后端不可用时自动降级为模拟数据
+// （降级状态通过 data-source.ts 注册表向用户显式标注，不再静默显示假数据）
 
 import {
   mockCoverageSummary,
@@ -34,6 +35,7 @@ import {
   type ImagingRecordItem,
   type UserInfo,
 } from "./mock-data";
+import { recordApiOutcome } from "./data-source";
 
 // API 基址规则：
 //  - 未设置（本地开发）→ 回退 http://localhost:8000
@@ -82,6 +84,15 @@ function authHeaders(): Record<string, string> {
   return token ? { "X-User-Token": token } : {};
 }
 
+/** 401 统一处理：清除过期 token 并广播事件，user-context 监听后回到演示用户。
+ * （此前 401 与"后端不可达"不可区分，前端仍显示已登录的假数据） */
+function _handleUnauthorized(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem("oumed_user_token");
+  window.localStorage.removeItem("oumed_user_profile");
+  window.dispatchEvent(new CustomEvent("meditrust:unauthorized"));
+}
+
 async function apiFetch<T>(
   path: string,
   options?: RequestInit,
@@ -96,12 +107,28 @@ async function apiFetch<T>(
       },
       signal: options?.signal ?? AbortSignal.timeout(90000),
     });
-    if (!res.ok) return null;
+    if (res.status === 401) {
+      _handleUnauthorized();
+      recordApiOutcome(path, false, "http:401");
+      return null;
+    }
+    if (!res.ok) {
+      recordApiOutcome(path, false, `http:${res.status}`);
+      return null;
+    }
     // 防止 Render 冷启动返回 HTML 插页导致 JSON 解析失败
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) return null;
-    return (await res.json()) as T;
-  } catch {
+    if (!contentType.includes("application/json")) {
+      recordApiOutcome(path, false, "parse");
+      return null;
+    }
+    const data = (await res.json()) as T;
+    recordApiOutcome(path, true);
+    return data;
+  } catch (e) {
+    const kind =
+      e instanceof DOMException && e.name === "TimeoutError" ? "timeout" : "network";
+    recordApiOutcome(path, false, kind);
     return null;
   }
 }
@@ -119,11 +146,27 @@ async function apiUpload<T>(
       body: form,
       signal: AbortSignal.timeout(120000),
     });
-    if (!res.ok) return null;
+    if (res.status === 401) {
+      _handleUnauthorized();
+      recordApiOutcome(path, false, "http:401");
+      return null;
+    }
+    if (!res.ok) {
+      recordApiOutcome(path, false, `http:${res.status}`);
+      return null;
+    }
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) return null;
-    return (await res.json()) as T;
-  } catch {
+    if (!contentType.includes("application/json")) {
+      recordApiOutcome(path, false, "parse");
+      return null;
+    }
+    const data = (await res.json()) as T;
+    recordApiOutcome(path, true);
+    return data;
+  } catch (e) {
+    const kind =
+      e instanceof DOMException && e.name === "TimeoutError" ? "timeout" : "network";
+    recordApiOutcome(path, false, kind);
     return null;
   }
 }
@@ -292,21 +335,38 @@ export async function uploadBodyDocument(
   userId: string,
   file: File,
 ): Promise<BodyUploadResult | null> {
+  const path = `/api/body/${userId}/upload`;
   try {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(`${API_BASE}/api/body/${userId}/upload`, {
+    const res = await fetch(`${API_BASE}${path}`, {
       method: "POST",
       headers: authHeaders(),
       body: form,
       // 后端 45s 处理超时 + OCR/视觉转录耗时，预留 120s
       signal: AbortSignal.timeout(120000),
     });
-    if (!res.ok) return null;
+    if (res.status === 401) {
+      _handleUnauthorized();
+      recordApiOutcome(path, false, "http:401");
+      return null;
+    }
+    if (!res.ok) {
+      recordApiOutcome(path, false, `http:${res.status}`);
+      return null;
+    }
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) return null;
-    return (await res.json()) as BodyUploadResult;
-  } catch {
+    if (!contentType.includes("application/json")) {
+      recordApiOutcome(path, false, "parse");
+      return null;
+    }
+    const data = (await res.json()) as BodyUploadResult;
+    recordApiOutcome(path, true);
+    return data;
+  } catch (e) {
+    const kind =
+      e instanceof DOMException && e.name === "TimeoutError" ? "timeout" : "network";
+    recordApiOutcome(path, false, kind);
     return null;
   }
 }
@@ -351,24 +411,38 @@ export interface DrugScanResult {
 
 /** 拍照识别药品（只读，不写库） */
 export async function scanDrug(userId: string, file: File): Promise<DrugScanResult | null> {
+  const path = `/api/drugs/scan?user_id=${encodeURIComponent(userId)}`;
   try {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(
-      `${API_BASE}/api/drugs/scan?user_id=${encodeURIComponent(userId)}`,
-      {
-        method: "POST",
-        headers: authHeaders(),
-        body: form,
-        // 后端 45s 识别超时 + 视觉模型耗时，预留 120s
-        signal: AbortSignal.timeout(120000),
-      },
-    );
-    if (!res.ok) return null;
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+      // 后端 45s 识别超时 + 视觉模型耗时，预留 120s
+      signal: AbortSignal.timeout(120000),
+    });
+    if (res.status === 401) {
+      _handleUnauthorized();
+      recordApiOutcome(path, false, "http:401");
+      return null;
+    }
+    if (!res.ok) {
+      recordApiOutcome(path, false, `http:${res.status}`);
+      return null;
+    }
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) return null;
-    return (await res.json()) as DrugScanResult;
-  } catch {
+    if (!contentType.includes("application/json")) {
+      recordApiOutcome(path, false, "parse");
+      return null;
+    }
+    const data = (await res.json()) as DrugScanResult;
+    recordApiOutcome(path, true);
+    return data;
+  } catch (e) {
+    const kind =
+      e instanceof DOMException && e.name === "TimeoutError" ? "timeout" : "network";
+    recordApiOutcome(path, false, kind);
     return null;
   }
 }
@@ -667,23 +741,37 @@ export async function importEEGFile(
   sampleRate: number = 256,
   mentalState: string = "auto",
 ): Promise<EEGSession | null> {
+  const path = `/api/eeg/${userId}/import?sample_rate=${sampleRate}&mental_state=${encodeURIComponent(mentalState)}`;
   try {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch(
-      `${API_BASE}/api/eeg/${userId}/import?sample_rate=${sampleRate}&mental_state=${encodeURIComponent(mentalState)}`,
-      {
-        method: "POST",
-        headers: authHeaders(),
-        body: form,
-        signal: AbortSignal.timeout(120000),
-      },
-    );
-    if (!res.ok) return null;
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+      signal: AbortSignal.timeout(120000),
+    });
+    if (res.status === 401) {
+      _handleUnauthorized();
+      recordApiOutcome(path, false, "http:401");
+      return null;
+    }
+    if (!res.ok) {
+      recordApiOutcome(path, false, `http:${res.status}`);
+      return null;
+    }
     const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) return null;
-    return (await res.json()) as EEGSession;
-  } catch {
+    if (!contentType.includes("application/json")) {
+      recordApiOutcome(path, false, "parse");
+      return null;
+    }
+    const data = (await res.json()) as EEGSession;
+    recordApiOutcome(path, true);
+    return data;
+  } catch (e) {
+    const kind =
+      e instanceof DOMException && e.name === "TimeoutError" ? "timeout" : "network";
+    recordApiOutcome(path, false, kind);
     return null;
   }
 }

@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConditionalSidebar } from "@/components/conditional-sidebar";
 import { UserProvider } from "@/lib/user-context";
+import { DataSourceBanner } from "@/components/data-source-banner";
 import { BRAND } from "@/lib/brand";
 
 const geistSans = localFont({
@@ -35,7 +36,10 @@ export default function RootLayout({
       <body className="antialiased">
         <UserProvider>
           <TooltipProvider>
-            <ConditionalSidebar>{children}</ConditionalSidebar>
+            <div className="flex min-h-screen flex-col">
+              <DataSourceBanner />
+              <ConditionalSidebar>{children}</ConditionalSidebar>
+            </div>
           </TooltipProvider>
         </UserProvider>
       </body>

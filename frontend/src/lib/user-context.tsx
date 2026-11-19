@@ -113,6 +113,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+  // 会话过期被动处理：api.ts 在任意 API 返回 401 时清除 token 并广播
+  // `meditrust:unauthorized`（此前 401 与"后端不可达"不可区分，前端继续
+  // 保持已登录状态并显示假数据）。此处监听并回到演示用户。
+  useEffect(() => {
+    const onUnauthorized = () => {
+      clearAuthSession();
+      setCurrentUser(mockUsers[0]);
+    };
+    window.addEventListener("meditrust:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("meditrust:unauthorized", onUnauthorized);
+  }, []);
+
   const userId = `user_${String(currentUser.id).padStart(3, "0")}`;
   // 演示用户无邮箱，email 存在即视为已登录
   const loggedIn = Boolean(currentUser.email);
