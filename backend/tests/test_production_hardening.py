@@ -6,6 +6,7 @@
    涉及 users 表或子查询 → 拒绝；特权角色不限制。
 """
 
+import base64
 import hashlib
 import hmac
 import os
@@ -25,17 +26,19 @@ from app.services.data_lake import engine as de  # noqa: E402
 # ------------------------------------------------------------------
 
 def test_production_config_problems_detects_demo_defaults(monkeypatch):
-    """生产模式：四项出厂默认配置全部被检出。"""
+    """生产模式：六项出厂默认/缺失配置全部被检出。"""
     monkeypatch.setattr(settings, "DEMO_MODE", False)
     # conftest 已预置非默认 YIBAO_SESSION_SECRET，此处显式还原为出厂默认值以检出
     monkeypatch.setattr(settings, "YIBAO_SESSION_SECRET", "please-change-this")
     problems = production_config_problems()
-    assert len(problems) == 4
+    assert len(problems) == 6
     joined = " ".join(problems)
     assert "ADMIN_PASSWORD" in joined
     assert "YIBAO_ADMIN_SECRET" in joined
     assert "YIBAO_SESSION_SECRET" in joined
     assert "CORS_ORIGINS" in joined
+    assert "YIBAO_DATA_KEY" in joined
+    assert "FEDERATION_PARAM_KEY" in joined
 
 
 def test_production_config_problems_detects_env_example_placeholders(monkeypatch):
@@ -45,7 +48,7 @@ def test_production_config_problems_detects_env_example_placeholders(monkeypatch
     monkeypatch.setattr(settings, "YIBAO_ADMIN_SECRET", "please-change-this-admin-secret")
     monkeypatch.setattr(settings, "YIBAO_SESSION_SECRET", "please-change-this-to-a-random-secret")
     problems = production_config_problems()
-    assert len(problems) == 4
+    assert len(problems) == 6
 
 
 def test_production_config_problems_pass_with_real_config(monkeypatch):
@@ -55,6 +58,9 @@ def test_production_config_problems_pass_with_real_config(monkeypatch):
     monkeypatch.setattr(settings, "YIBAO_ADMIN_SECRET", "prod-admin-secret-xyz")
     monkeypatch.setattr(settings, "YIBAO_SESSION_SECRET", "prod-session-secret-xyz")
     monkeypatch.setattr(settings, "CORS_ORIGINS", "https://meditrust.example.com")
+    # 32 字节密钥的 base64 形态（YIBAO_DATA_KEY / FEDERATION_PARAM_KEY）
+    monkeypatch.setattr(settings, "YIBAO_DATA_KEY", base64.b64encode(bytes(32)).decode())
+    monkeypatch.setattr(settings, "FEDERATION_PARAM_KEY", base64.b64encode(bytes(32)).decode())
     assert production_config_problems() == []
 
 

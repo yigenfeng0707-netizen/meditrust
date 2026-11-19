@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     CHAIN_ANCHOR_INTERVAL_HOURS: int = 24
 
     # 等保三级·安全审计留存：库内保留天数（等保 2.0 三级要求 ≥6 个月，超期先归档库外再清理）
-    AUDIT_RETENTION_DAYS: int = 180
+    AUDIT_RETENTION_DAYS: int = 183
     # 审计留存清理周期（小时；0 = 关闭，仅管理端/脚本手动归档）
     AUDIT_CLEANUP_INTERVAL_HOURS: int = 24
     # 审计归档目录（JSONL append-only，超期记录删除前的库外留存）
@@ -163,6 +163,16 @@ def production_config_problems() -> list[str]:
     if settings.CORS_ORIGINS.strip() == "*":
         problems.append(
             "CORS_ORIGINS 为 *（全域放行），生产环境必须收敛为前端域名白名单（逗号分隔）"
+        )
+    # 数据加密与联邦传输加密：留空即静默降级为明文模式，医疗数据场景不可接受，
+    # 因此与口令/CORS 同级强制（32 字节 base64/hex 密钥可由 scripts 生成）
+    if _looks_unconfigured(settings.YIBAO_DATA_KEY):
+        problems.append(
+            "YIBAO_DATA_KEY 未配置或为占位符（敏感字段 AES-256-GCM 数据密钥；留空 = 明文兼容模式，生产必须配置 32 字节 base64/hex 密钥）"
+        )
+    if _looks_unconfigured(settings.FEDERATION_PARAM_KEY):
+        problems.append(
+            "FEDERATION_PARAM_KEY 未配置或为占位符（联邦节点参数上行 AES-256-GCM 信封密钥；留空 = 明文兼容联调模式，生产必须配置）"
         )
     return problems
 
